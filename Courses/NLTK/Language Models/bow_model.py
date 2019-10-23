@@ -4,6 +4,7 @@ import re
 import nltk
 import heapq
 import numpy as np
+from pprint import pprint
 
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -13,7 +14,7 @@ os.chdir('/Users/pabloruizruiz/OneDrive/Courses/NLP Stanford Course/')
 print(os.getcwd())
 
 with open('Courses/NLTK/dicaprio.txt') as f:
-    sentencesset = f.read()
+    dataset = f.read()
 
 
 '''
@@ -25,8 +26,7 @@ You can extend what is in the axis (word/sentences or bigram/pages)
 # HISTOGRAM OF WORDS
 # ------------------
 
-# sentencesset
-sentences = nltk.sent_tokenize(sentencesset)
+sentences = nltk.sent_tokenize(dataset)
 
 # Preprocessing
 for i, sentence in enumerate(sentences):
@@ -80,6 +80,8 @@ IDF: Inverse of Document Frequency (word)
 TF-IDF = TF*IDF
 '''
 
+# IDF
+
 word_idfs = dict()
 
 for word in freq_words:
@@ -89,6 +91,9 @@ for word in freq_words:
             doc_count += 1
     word_idfs[word] = np.log((len(sentences)/doc_count)+1)
 
+pprint(word_idfs)
+
+# TF
 
 word_tfs = dict()
 
@@ -103,6 +108,9 @@ for word in freq_words:
         doc_tf.append(tf)
     word_tfs[word] = doc_tf
 
+pprint(word_tfs)
+
+# TF·IDF
 
 tfidf_matrix = list()
 for word in word_tfs:
@@ -110,4 +118,6 @@ for word in word_tfs:
     for value in word_tfs[word]:
         score = value * word_idfs[word]
         tfidf.append(score)
+    tfidf_matrix.append(tfidf)
         
+X = np.asarray(tfidf_matrix).T
