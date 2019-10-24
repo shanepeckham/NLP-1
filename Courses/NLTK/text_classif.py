@@ -44,25 +44,49 @@ for i in range(len(X)):
     review = re.sub(r'\s+', ' ', review)
     corpus.append(review)
 
-# Create the Language Model - BOW
+# # Create the Language Model - BOW
 
-from sklearn.feature_extraction.text import CountVectorizer
-vectorizer = CountVectorizer(
-    max_features=2000,      # The most common 2000 words
-    min_df=3, max_df=0.6,    # Excludo all thosethat appear in < 3 and > 60% docs
-    stop_words=stopwords.words('english'))
+# from sklearn.feature_extraction.text import CountVectorizer
+# vectorizer = CountVectorizer(
+#     max_features=2000,      # The most common 2000 words
+#     min_df=3, max_df=0.6,    # Excludo all thosethat appear in < 3 and > 60% docs
+#     stop_words=stopwords.words('english'))
 
-X = vectorizer.fit_transform(corpus).toarray()
+# X = vectorizer.fit_transform(corpus).toarray()
 
-# Convert BOW to TF-IDF
+# # Convert BOW to TF-IDF
 
+# from sklearn.feature_extraction.text import TfidfTransformer
+# transformer = TfidfTransformer()
+# X = transformer.fit_transform(X).toarray()
+
+# Above BOW+transform in just 1 command tf-idf
 from sklearn.feature_extraction.text import TfidfTransformer
-transformer = TfidfTransformer()
-X = transformer.fit_transform(X).toarray()
-
+vectorizer = TfidfTransformer()
+X = vectorizer.fit_transform(X).toarray()
 
 # Training and Testing Set
 
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X,y,random_state=0,train_size=0.8)
 
+# Creating the Classifier
+
+from sklearn.linear_model import LogisticRegression
+classifier = LogisticRegression()
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
+
+# Evaluation
+
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
+
+# Save Model
+with open('classifier.pkl', 'wb') as f:
+    pickle.dump(classifier,f)
+
+# Save tfidf-Vectorizer
+with open('vectorizer.pkl', 'wb') as f:
+    pickle.dump(vectorizer,f)
+    
