@@ -60,22 +60,51 @@ df.info()
 # NLTK Pipeline for text processing
 # ---------------------------------
 
-def preproces_pipeline(df:pd.Series, tokenizer, stemmer, SW:list):
-    # 1. Lowercase
-    df = df.apply(lambda x: x.lower())
-    # 2. Tokenization and Remove Punk
-    df = df.apply(tokenizer.tokenize)
-    # 3. Remove Stopwords
-    df = df.apply(lambda mail: [w for w in mail if w not in SW])
-    # 4. Stemming on the tokens
-    df = df.apply(lambda mail: [stemmer.stem(w) for w in mail])
-    return df
+def is_sentence(x):
+    return type(x) == str
 
-df['Text'] = preproces_pipeline(
-    df['Text'], 
+def is_tokens(x):
+    return type(x) == list
+
+def token_to_sentence(x):
+    return ' '.join(x)
+
+def sentence_to_token(x,tokenizer=RegexpTokenizer(r'\w+')):
+    return tokenizer.tokenize(x)
+
+def ensure_sentence(x):
+    return x if is_sentence(x) else token_to_sentence(x)
+
+def preproces_pipeline(
+    df:pd.DataFrame, col:str,
+    tokenizer, stemmer,
+    SW:list, as_tokens:bool=True):
+    # Decouple the column to be modified
+    ds = df[col]
+    ds = ds.apply(ensure_sentence)
+    # 1. Lowercase
+    ds = ds.apply(lambda mail: mail.lower())
+    # 2. Tokenization and Remove Punk
+    ds = ds.apply(tokenizer.tokenize)
+    # 3. Remove single character words
+    ds = ds.apply(lambda mail: [w for w in mail if len(w)>1])
+    # 4. Remove Stopwords
+    ds = ds.apply(lambda mail: [w for w in mail if w not in SW])
+    # 5. Stemming on the tokens
+    ds = ds.apply(lambda mail: [stemmer.stem(w) for w in mail])
+    # 6. Integrate back and Remove emails where there are no words left
+    df.loc[:,col] = ds.values
+    df = df[df[col].map(len) > 0].reset_index()
+    # 7. Return collection of tokens o collection of sentences    
+    return df if as_tokens else df.apply(token_to_sentence)
+
+df = preproces_pipeline(
+    df,
+    'Text', 
     TOKENIZER,
     STEMMER,
-    STOPWORDS)
+    STOPWORDS,
+    as_tokens=True)
 
 
 # Prepare Data for Modeling 
@@ -89,68 +118,59 @@ tr_df, va_df = df.loc[tr_id,['Text','Label']], df.loc[va_id,['Text','Label']]
 
 # BAG OF WORDS MODEL
 # ------------------
-'''
-Create a document-term matrix
-'''
+''' Create a document-term matrix '''
 
-# 1 - SCRATCH 
+# 1 - SCRATCH
+# -----------
 ''' 
 It could make sense to first find the most frequent words:
-and then create the BOW for only those. For that:
+and then create the BOW for only those. For that, after computing dfm:
 
-from collections import defaultdict
-word_frequency = defaultdict(int)
-for sample in tr_df['Text'].values:
-    for word in sample:
-        word_frequency[word] += 1
-
-# The 30 most frequent words
-freq_words = heapq.nlargest(300, word_frequency, key=word_frequency.get)
+freq_words = heapq.nlargest(300, dfm, key=word_frequency.get)
 freq_words_counts = sorted(word_frequency.items(), key=lambda k: k[1], reverse=True)
 
 But Dojo just do it for all, so let's do that
 '''
 
-
-dfm = dict()
-tr_emails = tr_df['Text'].to_list()
-for i,email in enumerate(tr_emails):
+from collections import defaultdict
+dfm_sc = defaultdict(lambda: defaultdict(int))
+for i,email in enumerate(tr_df['Text']):
     for word in email:
-        if word not in dfm.keys():
-            dfm[word] = dict()
-        if i not in dfm[word].keys():
-            dfm[word][i] = 1
-        else:
-            dfm[word][i] += 1
+        dfm_sc[word][i] += 1 
 
-dfm_ = pd.DataFrame.from_dict(dfm).fillna(0)
-dfm_.head()
+dfm_sc_df = pd.DataFrame.from_dict(dfm_sc).fillna(0)
+dfm_sc_df.head()
 
 
-# 2 - SCIKIT-LEARN
+# 2 - SK-LEARN
+# ------------
 from sklearn.feature_extraction.text import CountVectorizer
 ''' 
 Convert a collection of text documents to a matrix of token counts 
 Implements both tokenization and occurrence counting in a single class
 '''
 vectorizer = CountVectorizer(
-    max_features=2000,      # The most common 2000 words
-    min_df=3,               # Exclude all that appear in < 3 docs
-    max_df=0.6,             # Exclude all that appear in > 60% docs
+    max_features=None,      # The most common 2000 words
+    min_df=1,               # Exclude all that appear in < 3 docs
+    max_df=1.,               # Exclude all that appear in > X/100 % docs
     stop_words=stopwords.words('english'))
 
-
-X = vectorizer.fit_transform(
-    tr_df['Text'].apply(lambda x: ' '.join(x))).toarray()
-
-
-
-
-
-
+dfm_sk = vectorizer.fit_transform(
+    tr_df['Text'].apply(token_to_sentence)).toarray()
+dfm_sk_df = pd.DataFrame(dfm_sk, columns=vectorizer.get_feature_names())
 
 
 # 3 - GENSIM
+# ----------
+import gensim
 from gensim import corpora
-dictionary = corpora.Dictionary(df['Text'])
+dictionary = corpora.Dictionary(tr_df['Text'])
+
+bow = tr_df['Text'].apply(dictionary.doc2bow)
+dfm_gs = defaultdict(lambda: defaultdict(int))
+for i,l in enumerate(bow):
+    for id,count in l:
+        dfm_gs[i][dictionary[id]] = count
+
+dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
 
