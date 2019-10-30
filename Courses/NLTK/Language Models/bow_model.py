@@ -13,7 +13,7 @@ nltk.download('stopwords')
 os.chdir('/Users/pabloruizruiz/OneDrive/Courses/NLP Stanford Course/')
 print(os.getcwd())
 
-with open('Courses/NLTK/dicaprio.txt') as f:
+with open('Courses/NLTK/data/dicaprio.txt') as f:
     dataset = f.read()
 
 

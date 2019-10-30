@@ -1,14 +1,19 @@
 
+import os
 import re
 import pickle
 import numpy as np
+from os.path import abspath, dirname
 
 import nltk
 nltk.download('stopwords')
 from nltk.corpus import stopwords
 from sklearn.datasets import load_files
 
-LOAD=True
+workdir = dirname(__file__)
+os.chdir(workdir)
+
+LOAD=False
 
 if not LOAD:
     # Importing dataset

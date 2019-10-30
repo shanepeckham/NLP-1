@@ -9,7 +9,7 @@ nltk.download('stopwords')
 
 
 # DiCaprio Oscars Speech
-with open('text.txt') as f:
+with open('Courses/NLTK/data/dicaprio.txt') as f:
     paragraph = f.read()
 
 
