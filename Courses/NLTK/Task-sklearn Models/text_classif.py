@@ -17,21 +17,21 @@ LOAD=False
 
 if not LOAD:
     # Importing dataset
-    reviews = load_files('data/review_polarity/txt_sentoken')
+    reviews = load_files('../data/review_polarity/txt_sentoken')
     X,y = reviews.data, reviews.target
 
-    with open('data/review_polarity/txt_sentoken/X.pickle', 'wb') as f:
+    with open('../data/review_polarity/txt_sentoken/X.pickle', 'wb') as f:
         pickle.dump(X,f)
 
-    with open('data/review_polarity/txt_sentoken/y.pickle', 'wb') as f:
+    with open('../data/review_polarity/txt_sentoken/y.pickle', 'wb') as f:
         pickle.dump(y,f)
 
 else:
     # Unpickle dataset
-    with open('data/review_polarity/txt_sentoken/X.pickle', 'wb') as f:
+    with open('../data/review_polarity/txt_sentoken/X.pickle', 'wb') as f:
         X = pickle.load(f)
 
-    with open('data/review_polarity/txt_sentoken/y.pickle', 'wb') as f:
+    with open('../data/review_polarity/txt_sentoken/y.pickle', 'wb') as f:
         y = pickle.load(f)
 
 # Creating the corpus - Preprocessing

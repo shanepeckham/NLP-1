@@ -60,7 +60,6 @@ for sentence in sentences:
             vector.append(0)
     X.append(vector)
 
-
 X = np.asarray(X)
 
 
