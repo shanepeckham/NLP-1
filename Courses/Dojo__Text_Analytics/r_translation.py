@@ -57,6 +57,22 @@ df.info()
 # plt.show()
 
 
+def order_df_count(df):
+    # Order Columns by Frequency of the Word in the Entire Corpus
+    return df[df.sum().sort_values(ascending=False).index.to_list()]
+
+
+def check_differences(s1,s2):
+    sortset = lambda l: sorted(sorted(list(l)),key=len, reverse=True)
+    s12 = s1 - s2
+    s21 = s2 - s1
+    s = s1 ^ s2
+    print('Elements present in A but not in B: ', sortset(s12))
+    print('Elements present in B but not in A: ', sortset(s21))
+    print('Elements present in only on of them: ', sortset(s))
+    return s
+
+
 # NLTK Pipeline for text processing
 # ---------------------------------
 
@@ -122,9 +138,6 @@ tr_df, va_df = df.loc[tr_id,['Text','Label']], df.loc[va_id,['Text','Label']]
 # ------------------
 Create a document-term matrix 
 '''
-def order_df_count(df):
-    # Order Columns by Frequency of the Word in the Entire Corpus
-    return df[df.sum().sort_values(ascending=False).index.to_list()]
 
 # 1 - SCRATCH
 # -----------
@@ -165,7 +178,7 @@ dfm_sk_df = order_df_count(pd.DataFrame(dfm_sk, columns=vectorizer.get_feature_n
 dfm_sk_df.head()
 
 # Words that are missing in Sklearn implementation
-diff = set(dfm_sc.keys()).difference(set(dfm_sk_df.columns))
+diff = check_differences(set(dfm_sk_df.columns), set(dfm_sc.keys()))
 
 
 # 3 - GENSIM
@@ -182,5 +195,5 @@ for i,l in enumerate(bow):
 dfm_gs_df = order_df_count(pd.DataFrame.from_dict(dfm_gs).T.fillna(0))
 dfm_gs_df.head()
 
-diff = set(dfm_sc.keys()).difference(set(dfm_gs_df.columns))
+diff = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
 
