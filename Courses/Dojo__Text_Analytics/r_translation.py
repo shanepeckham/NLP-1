@@ -57,9 +57,11 @@ df.info()
 # plt.show()
 
 
-def order_df_count(df):
+def order_df_count(df, col=None):
     # Order Columns by Frequency of the Word in the Entire Corpus
-    return df[df.sum().sort_values(ascending=False).index.to_list()]
+    if not col:
+        return df[df.sum().sort_values(ascending=False).index.to_list()]
+    return df[df[col].sort_values(ascending=False).index.to_list()]
 
 
 def check_differences(s1,s2):
@@ -110,7 +112,7 @@ def preproces_pipeline(
     ds = ds.apply(lambda mail: [stemmer.stem(w) for w in mail])
     # 6. Integrate back and Remove emails where there are no words left
     df.loc[:,col] = ds.values
-    df = df[df[col].map(len) > 0].reset_index()
+    df = df[df[col].map(len) > 0].reset_index(drop=True)
     # 7. Return collection of tokens o collection of sentences    
     return df if as_tokens else df.apply(token_to_sentence)
 
@@ -122,16 +124,17 @@ df = preproces_pipeline(
     STOPWORDS,
     as_tokens=True)
 
+df['index'] = ['mail_{}'.format(i) for i in range(len(df))]
 df.head()
-
 
 # Prepare Data for Modeling 
 # --------------------------
 
 from sklearn.model_selection import StratifiedShuffleSplit
 sampler = StratifiedShuffleSplit(n_splits=1,test_size=0.3,random_state=2019)
-tr_id, va_id = list(*sampler.split(df['Text'].values, df['Label'].values))
-tr_df, va_df = df.loc[tr_id,['Text','Label']], df.loc[va_id,['Text','Label']]
+tr_id, va_id = list(*sampler.split(df['Text'], df['Label']))
+tr_df, va_df = df.loc[tr_id,['index','Text','Label']], df.loc[va_id,['index','Text','Label']]
+tr_df.head()
 
 '''
 # BAG OF WORDS MODEL
@@ -157,8 +160,10 @@ for i,email in enumerate(tr_df['Text']):
     for word in email:
         dfm_sc[word][i] += 1 
 
-dfm_sc_df = order_df_count(pd.DataFrame.from_dict(dfm_sc).fillna(0))
+dfm_sc_df = pd.DataFrame.from_dict(dfm_sc).fillna(0)
+dfm_sc_df = dfm_sc_df.set_index(tr_df['index'])
 dfm_sc_df.head()
+order_df_count(dfm_sc_df).head()
 
 # 2 - SKLEARN
 # -----------
@@ -174,7 +179,8 @@ vectorizer = CountVectorizer(
     stop_words=stopwords.words('english'))
 
 dfm_sk = vectorizer.fit_transform(tr_df['Text'].apply(token_to_sentence)).toarray()
-dfm_sk_df = order_df_count(pd.DataFrame(dfm_sk, columns=vectorizer.get_feature_names()))
+dfm_sk_df = pd.DataFrame(dfm_sk, columns=vectorizer.get_feature_names())
+order_df_count(dfm_sk_df).head()
 dfm_sk_df.head()
 
 # Words that are missing in Sklearn implementation
@@ -192,7 +198,8 @@ for i,l in enumerate(bow):
     for id,count in l:
         dfm_gs[i][dictionary[id]] = count
 
-dfm_gs_df = order_df_count(pd.DataFrame.from_dict(dfm_gs).T.fillna(0))
+dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
+order_df_count(dfm_gs_df).head()
 dfm_gs_df.head()
 
 diff = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
@@ -210,16 +217,50 @@ as a measure of the importance of the terms.
 
 # 1 - SCRATCH
 # -----------
-
 # TF -> Calculate Relative Term Frequency
 tf_f = lambda row: row/np.sum(row)  
 idf_f = lambda col: np.log(len(col)/np.sum(col))
 
-tfm = dfm_sk_df.apply(tf_f, axis=1)
-idfm = dfm_sk_df.apply(idf_f, axis=0)
+tfm = dfm_sc_df.apply(tf_f, axis=1)
+idfm = dfm_sc_df.apply(idf_f, axis=0)
 # Check --> tfm.iloc[0,:].replace(0,np.nan).dropna()
 
-tfidf_sk = idfm * tfm
-tfidf_sk.head()
+tfm.head()
+order_df_count(tfm).head()
+tfm.T.head()
+idfm.head()
+
+tfidfm = idfm * tfm
+tfidfm.T.head()
+# order_df_count(tfidfm).head()
+# order_df_count(tfidfm.T).head()
 
 
+# 2 - SKLEARN
+# -----------
+# TfidfVectorizer == CountVectorized + TfidfTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer 
+tf_transformer = TfidfVectorizer(
+    max_features=None,
+    min_df=1,
+    max_df=1.,
+    norm=None,
+    use_idf=False,
+    ngram_range=(1,1),
+    stop_words=stopwords.words('english'))
+
+tfm_sk = tf_transformer.fit_transform(tr_df['Text'].apply(token_to_sentence)).toarray()
+tfm_sk_df = pd.DataFrame(tfm_sk, index=tr_df['index'], columns=tf_transformer.get_feature_names())
+tfm_sk_df.head()
+order_df_count(tfm_sk_df).head()
+
+
+# 3 - GENSIM
+# ----------
+from gensim.models import TfidfModel
+tf_gensim = TfidfModel(bow.tolist(), smartirs='ntc')
+tfm_g = tf_gensim[bow.tolist()]
+
+for document in tfm_g:
+    for id,freq in document:
+        print([dictionary[id], np.around(freq, decimals=2)])
