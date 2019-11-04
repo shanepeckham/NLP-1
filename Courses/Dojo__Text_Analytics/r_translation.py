@@ -197,3 +197,29 @@ dfm_gs_df.head()
 
 diff = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
 
+
+
+'''
+TF-IDF MODEL
+# ----------
+
+Extends BOW model taking into account frequency of words 
+as a measure of the importance of the terms.
+
+'''
+
+# 1 - SCRATCH
+# -----------
+
+# TF -> Calculate Relative Term Frequency
+tf_f = lambda row: row/np.sum(row)  
+idf_f = lambda col: np.log(len(col)/np.sum(col))
+
+tfm = dfm_sk_df.apply(tf_f, axis=1)
+idfm = dfm_sk_df.apply(idf_f, axis=0)
+# Check --> tfm.iloc[0,:].replace(0,np.nan).dropna()
+
+tfidf_sk = idfm * tfm
+tfidf_sk.head()
+
+
