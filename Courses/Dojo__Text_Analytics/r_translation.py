@@ -106,19 +106,25 @@ df = preproces_pipeline(
     STOPWORDS,
     as_tokens=True)
 
+df.head()
+
 
 # Prepare Data for Modeling 
-# ---------------------------------------------------
+# --------------------------
 
 from sklearn.model_selection import StratifiedShuffleSplit
 sampler = StratifiedShuffleSplit(n_splits=1,test_size=0.3,random_state=2019)
 tr_id, va_id = list(*sampler.split(df['Text'].values, df['Label'].values))
 tr_df, va_df = df.loc[tr_id,['Text','Label']], df.loc[va_id,['Text','Label']]
 
-
+'''
 # BAG OF WORDS MODEL
 # ------------------
-''' Create a document-term matrix '''
+Create a document-term matrix 
+'''
+def order_df_count(df):
+    # Order Columns by Frequency of the Word in the Entire Corpus
+    return df[df.sum().sort_values(ascending=False).index.to_list()]
 
 # 1 - SCRATCH
 # -----------
@@ -138,12 +144,11 @@ for i,email in enumerate(tr_df['Text']):
     for word in email:
         dfm_sc[word][i] += 1 
 
-dfm_sc_df = pd.DataFrame.from_dict(dfm_sc).fillna(0)
+dfm_sc_df = order_df_count(pd.DataFrame.from_dict(dfm_sc).fillna(0))
 dfm_sc_df.head()
 
-
-# 2 - SK-LEARN
-# ------------
+# 2 - SKLEARN
+# -----------
 from sklearn.feature_extraction.text import CountVectorizer
 ''' 
 Convert a collection of text documents to a matrix of token counts 
@@ -155,14 +160,16 @@ vectorizer = CountVectorizer(
     max_df=1.,               # Exclude all that appear in > X/100 % docs
     stop_words=stopwords.words('english'))
 
-dfm_sk = vectorizer.fit_transform(
-    tr_df['Text'].apply(token_to_sentence)).toarray()
-dfm_sk_df = pd.DataFrame(dfm_sk, columns=vectorizer.get_feature_names())
+dfm_sk = vectorizer.fit_transform(tr_df['Text'].apply(token_to_sentence)).toarray()
+dfm_sk_df = order_df_count(pd.DataFrame(dfm_sk, columns=vectorizer.get_feature_names()))
+dfm_sk_df.head()
+
+# Words that are missing in Sklearn implementation
+diff = set(dfm_sc.keys()).difference(set(dfm_sk_df.columns))
 
 
 # 3 - GENSIM
 # ----------
-import gensim
 from gensim import corpora
 dictionary = corpora.Dictionary(tr_df['Text'])
 
@@ -172,5 +179,8 @@ for i,l in enumerate(bow):
     for id,count in l:
         dfm_gs[i][dictionary[id]] = count
 
-dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
+dfm_gs_df = order_df_count(pd.DataFrame.from_dict(dfm_gs).T.fillna(0))
+dfm_gs_df.head()
+
+diff = set(dfm_sc.keys()).difference(set(dfm_gs_df.columns))
 
