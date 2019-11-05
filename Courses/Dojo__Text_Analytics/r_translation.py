@@ -156,22 +156,26 @@ But Dojo just do it for all, so let's do that
 
 from collections import defaultdict
 
-def doc2bow(doc):
-    ''' Transform a document into a BOW representation (dict) '''
+def doc2dictBOW(doc:pd.Series):
+    ''' Transform a document into a python dictionary Bag Of Words Model '''
     bow = defaultdict(lambda: defaultdict(int))
     for d,sentence in enumerate(doc):
         for word in sentence:
             bow[word][d] += 1
     return bow
 
-def dict2df(dic,index=None,fillna=0):
+def doc2dfBOW(
+    doc:pd.Series,
+    index:pd.Series=None,
+    fillna=int(0)):
+    ''' Transform a document into a Pandas Dataframe Bag Of Words Model '''
+    dic = doc2dictBOW(doc)
     if index is not None:
         return pd.DataFrame.from_dict(dic).fillna(0)
     return pd.DataFrame.from_dict(dic).fillna(0).set_index(index)
 
-dfm_sc = doc2bow(tr_df['Text'])
-dfm_sc_df = dict2df(dfm_sc,index=tr_df['index'],fillna=0)
-
+dfm_sc = doc2dictBOW(doc=tr_df['Text'])
+dfm_sc_df = doc2dfBOW(doc=tr_df['Text'],index=tr_df['index'],fillna=0)
 dfm_sc_df.head()
 order_df_count(dfm_sc_df).head()
 
@@ -249,21 +253,26 @@ as a measure of the importance of the terms.
 # 1 - SCRATCH
 # -----------
 # TF -> Calculate Relative Term Frequency
-tf_f = lambda row: row/np.sum(row)  
-idf_f = lambda col: np.log10(len(col)/np.sum(col>0))
-# idf_f = lambda col: np.log(len(col)/np.sum(col))  # --> Wrong, it is not the sum, but the rows different to zero right?
+def term_frequency(row):
+    ''' Normalize the frequency of the row 
+    with the total number of records with a count >= 1'''
+    return row/np.sum(row)
 
-tfm = dfm_sc_df.apply(tf_f, axis=1)
-idfm = dfm_sc_df.apply(idf_f, axis=0)
+def inverse_doc_frequency(column):
+    ''' Weight each value of a column with the lenght of the column /
+    the sum of all records with a count >= 1 '''
+    return np.log10(len(column)/np.sum(column>0))
+
+tfm_sc = dfm_sc_df.apply(term_frequency, axis=1)
+idfm_sc = dfm_sc_df.apply(inverse_doc_frequency, axis=0)
 # Check --> tfm.iloc[0,:].replace(0,np.nan).dropna()
 
-tfm.head()
-order_df_count(tfm).head()
-tfm.T.head()
-idfm.head()
+# tfm_sc.head()
+# idfm_sc.head()
 
-tfidfm = idfm * tfm
-tfidfm.T.head()
+tfidfm_sc = idfm_sc * tfm_sc
+tfidfm_sc.head()
+tfidfm_sc.T.head()
 # order_df_count(tfidfm).head()
 # order_df_count(tfidfm.T).head()
 
