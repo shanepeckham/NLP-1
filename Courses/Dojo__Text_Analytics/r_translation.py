@@ -127,6 +127,10 @@ df = preproces_pipeline(
 df['index'] = ['mail_{}'.format(i) for i in range(len(df))]
 df.head()
 
+
+
+
+
 # Prepare Data for Modeling 
 # --------------------------
 
@@ -147,10 +151,10 @@ Create a document-term matrix
 ''' 
 It could make sense to first find the most frequent words:
 and then create the BOW for only those. For that, after computing dfm:
-
+--
 freq_words = heapq.nlargest(300, dfm, key=word_frequency.get)
 freq_words_counts = sorted(word_frequency.items(), key=lambda k: k[1], reverse=True)
-
+--
 But Dojo just do it for all, so let's do that
 '''
 
@@ -176,6 +180,7 @@ def doc2dfBOW(
 
 dfm_sc = doc2dictBOW(doc=tr_df['Text'])
 dfm_sc_df = doc2dfBOW(doc=tr_df['Text'],index=tr_df['index'],fillna=0)
+pprint(dfm_sc)
 dfm_sc_df.head()
 order_df_count(dfm_sc_df).head()
 
@@ -210,18 +215,9 @@ len(np.unique(dfm_sc_df.columns))
 # ----------
 import gensim
 from gensim import corpora
-
 dictionary = corpora.Dictionary(tr_df['Text'])
 
-def sad
-
-bow = tr_df['Text'].apply(dictionary.doc2bow)
-dfm_gs = defaultdict(lambda: defaultdict(int))
-for i,l in enumerate(bow):
-    for id,count in l:
-        dfm_gs[i][dictionary[id]] = count
-
-def gensinBOW2dict(
+def gensinBow2dict(
     bow:pd.Series, 
     dictionary:gensim.corpora.dictionary.Dictionary):
     ''' Tranform Gensim BOW Representation to a Dict '''
@@ -231,12 +227,14 @@ def gensinBOW2dict(
             genbow[doc_id][dictionary[id]] = token_count
     return genbow
 
-def gensinBOW2pandas(dic,index=None,fillna=0):
+def gensinBow2pandas(doc,index=None,fillna=0):
+    dict_bow = gensinBow2dict(doc)
     if index is not None:
-        return pd.DataFrame.from_dict(dic).fillna(0)
-    return pd.DataFrame.from_dict(dic).fillna(0).set_index(index)
+        return pd.DataFrame.from_dict(dict_bow).fillna(fillna)
+    return pd.DataFrame.from_dict(dict_bow).fillna(fillna).set_index(index)
 
-dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
+dfm_gs = gensinBow2dict(dictionary)
+dfm_gs_df = gensinBow2pandas(bow=dictionary,index=None,fillna=0.)
 order_df_count(dfm_gs_df).head()
 dfm_gs_df.head()
 
@@ -265,6 +263,7 @@ def inverse_doc_frequency(column):
     ''' Weight each value of a column with the lenght of the column /
     the sum of all records with a count >= 1 '''
     return np.log10(len(column)/np.sum(column>0))
+
 
 tfm_sc = dfm_sc_df.apply(term_frequency, axis=1)
 idfm_sc = dfm_sc_df.apply(inverse_doc_frequency, axis=0)
