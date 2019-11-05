@@ -155,15 +155,26 @@ But Dojo just do it for all, so let's do that
 '''
 
 from collections import defaultdict
-dfm_sc = defaultdict(lambda: defaultdict(int))
-for i,email in enumerate(tr_df['Text']):
-    for word in email:
-        dfm_sc[word][i] += 1 
 
-dfm_sc_df = pd.DataFrame.from_dict(dfm_sc).fillna(0)
-dfm_sc_df = dfm_sc_df.set_index(tr_df['index'])
+def doc2bow(doc):
+    ''' Transform a document into a BOW representation (dict) '''
+    bow = defaultdict(lambda: defaultdict(int))
+    for d,sentence in enumerate(doc):
+        for word in sentence:
+            bow[word][d] += 1
+    return bow
+
+def dict2df(dic,index=None,fillna=0):
+    if index is not None:
+        return pd.DataFrame.from_dict(dic).fillna(0)
+    return pd.DataFrame.from_dict(dic).fillna(0).set_index(index)
+
+dfm_sc = doc2bow(tr_df['Text'])
+dfm_sc_df = dict2df(dfm_sc,index=tr_df['index'],fillna=0)
+
 dfm_sc_df.head()
 order_df_count(dfm_sc_df).head()
+
 
 # 2 - SKLEARN
 # -----------
@@ -184,25 +195,45 @@ order_df_count(dfm_sk_df).head()
 dfm_sk_df.head()
 
 # Words that are missing in Sklearn implementation
-diff = check_differences(set(dfm_sk_df.columns), set(dfm_sc.keys()))
+diff = check_differences(set(dfm_sc.keys()),set(dfm_sk_df.columns))
+''' We remove the columns to make fair comparisons later on '''
+dfm_sc_df.drop(list(diff),axis=1,inplace=True)
+len(np.unique(dfm_sk_df.columns))
+len(np.unique(dfm_sc_df.columns))
 
 
 # 3 - GENSIM
 # ----------
+import gensim
 from gensim import corpora
-dictionary = corpora.Dictionary(tr_df['Text'])
 
+dictionary = corpora.Dictionary(tr_df['Text'])
 bow = tr_df['Text'].apply(dictionary.doc2bow)
 dfm_gs = defaultdict(lambda: defaultdict(int))
 for i,l in enumerate(bow):
     for id,count in l:
         dfm_gs[i][dictionary[id]] = count
 
+def gensinBOW2dict(
+    bow:pd.Series, 
+    dictionary:gensim.corpora.dictionary.Dictionary):
+    ''' Tranform Gensim BOW Representation to a Dict '''
+    genbow = defaultdict(lambda: defaultdict(int))
+    for doc_id, doc_values in enumerate(bow):
+        for token_id, token_count in doc_values:
+            genbow[doc_id][dictionary[id]] = token_count
+    return genbow
+
+def gensinBOW2pandas(dic,index=None,fillna=0):
+    if index is not None:
+        return pd.DataFrame.from_dict(dic).fillna(0)
+    return pd.DataFrame.from_dict(dic).fillna(0).set_index(index)
+
 dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
 order_df_count(dfm_gs_df).head()
 dfm_gs_df.head()
 
-diff = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
+diff_ = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
 
 
 
@@ -219,7 +250,8 @@ as a measure of the importance of the terms.
 # -----------
 # TF -> Calculate Relative Term Frequency
 tf_f = lambda row: row/np.sum(row)  
-idf_f = lambda col: np.log(len(col)/np.sum(col))
+idf_f = lambda col: np.log10(len(col)/np.sum(col>0))
+# idf_f = lambda col: np.log(len(col)/np.sum(col))  # --> Wrong, it is not the sum, but the rows different to zero right?
 
 tfm = dfm_sc_df.apply(tf_f, axis=1)
 idfm = dfm_sc_df.apply(idf_f, axis=0)
@@ -245,14 +277,17 @@ tf_transformer = TfidfVectorizer(
     min_df=1,
     max_df=1.,
     norm=None,
-    use_idf=False,
+    use_idf=True,
+    smooth_idf=True,
     ngram_range=(1,1),
     stop_words=stopwords.words('english'))
 
 tfm_sk = tf_transformer.fit_transform(tr_df['Text'].apply(token_to_sentence)).toarray()
 tfm_sk_df = pd.DataFrame(tfm_sk, index=tr_df['index'], columns=tf_transformer.get_feature_names())
-tfm_sk_df.head()
-order_df_count(tfm_sk_df).head()
+tfm_sk_df = tfm_sk_df.reindex((tfidfm.columns), axis=1)
+
+tfm_sk_df.T.head()
+# order_df_count(tfm_sk_df).head()
 
 
 # 3 - GENSIM
