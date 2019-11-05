@@ -212,6 +212,9 @@ import gensim
 from gensim import corpora
 
 dictionary = corpora.Dictionary(tr_df['Text'])
+
+def sad
+
 bow = tr_df['Text'].apply(dictionary.doc2bow)
 dfm_gs = defaultdict(lambda: defaultdict(int))
 for i,l in enumerate(bow):
@@ -265,12 +268,11 @@ def inverse_doc_frequency(column):
 
 tfm_sc = dfm_sc_df.apply(term_frequency, axis=1)
 idfm_sc = dfm_sc_df.apply(inverse_doc_frequency, axis=0)
+tfidfm_sc = idfm_sc * tfm_sc
 # Check --> tfm.iloc[0,:].replace(0,np.nan).dropna()
 
 # tfm_sc.head()
 # idfm_sc.head()
-
-tfidfm_sc = idfm_sc * tfm_sc
 tfidfm_sc.head()
 tfidfm_sc.T.head()
 # order_df_count(tfidfm).head()
@@ -293,7 +295,7 @@ tf_transformer = TfidfVectorizer(
 
 tfm_sk = tf_transformer.fit_transform(tr_df['Text'].apply(token_to_sentence)).toarray()
 tfm_sk_df = pd.DataFrame(tfm_sk, index=tr_df['index'], columns=tf_transformer.get_feature_names())
-tfm_sk_df = tfm_sk_df.reindex((tfidfm.columns), axis=1)
+tfm_sk_df = tfm_sk_df.reindex((tfidfm_sc.columns), axis=1)
 
 tfm_sk_df.T.head()
 # order_df_count(tfm_sk_df).head()
