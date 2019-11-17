@@ -125,18 +125,19 @@ dfm_scracth_df.drop(list(diff),axis=1,inplace=True)
 
 # # 3 - GENSIM
 # # ----------
-# import gensim
-# from gensim import corpora
-# from language.py_pd_gen import pdDocgenDict2dictBow, genDoc2pdBow
-# dictionary = corpora.Dictionary(tr_df['Text'])
-# # dfm_gs = genDict2dictBow(dictionary)
-# dfm_gs = pdDocgenDict2dictBow(pdDoc=tr_df['Text'], dictionary=dictionary)
-# dfm_gensin_df = gensinBow2pandas(bow=dictionary,index=None,fillna=0.)
+import gensim
+from gensim import corpora
+from language.py_pd_gen import pdDocgenDict2dictBow, genDoc2pdBow
+from language.py_pd_gen import genDict2dictBow, gensinBow2pandas
+dictionary = corpora.Dictionary(tr_df['Text'])
+dfm_gs = genDict2dictBow(dictionary)
+dfm_gs = pdDocgenDict2dictBow(pdDoc=tr_df['Text'], dictionary=dictionary)
+dfm_gensin_df = gensinBow2pandas(bow=dictionary,index=None,fillna=0.)
 
-# diff_ = check_differences(set(dfm_sc.keys()), set(dfm_gensin_df.columns))
+diff_ = check_differences(set(dfm_sc.keys()), set(dfm_gensin_df.columns))
 
-# # Plain Gensim
-# dense_vector= matutils.corpus2dense(sparse_vector,num_terms=len(dictionary.token2id))
+# Plain Gensim
+dense_vector= matutils.corpus2dense(sparse_vector,num_terms=len(dictionary.token2id))
 
 
 
