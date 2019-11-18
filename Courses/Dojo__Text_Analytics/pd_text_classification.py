@@ -128,50 +128,28 @@ dfm_scracth_df.drop(list(diff),axis=1,inplace=True)
 import gensim
 from gensim import corpora
 from collections import defaultdict
+# from language.py_pd_gen import pdDocgenDict2dictBow, genDoc2pdBow
+# from language.py_pd_gen import genDict2dictBow, gensinBow2pandas
 
-# dictionary = corpora.Dictionary(tr_df['Text'])
-# bow = tr_df['Text'].apply(dictionary.doc2bow)
-# dfm_gs = defaultdict(lambda: defaultdict(int))
-# for i,l in enumerate(bow):
-#     for id,count in l:
-#         dfm_gs[i][dictionary[id]] = count
-
-# dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
-# order_df_count(dfm_gs_df).head()
-# dfm_gs_df.head()
-
-# diff = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
-
-
-
-
-from language.py_pd_gen import pdDocgenDict2dictBow, genDoc2pdBow
-from language.py_pd_gen import genDict2dictBow, gensinBow2pandas
 dictionary = corpora.Dictionary(tr_df['Text'])
+bow = tr_df['Text'].apply(dictionary.doc2bow)
+dfm_gs = defaultdict(lambda: defaultdict(int))
+for i,l in enumerate(bow):
+    for id,count in l:
+        dfm_gs[i][dictionary[id]] = count
 
-dfm_gs_dict = genDict2dictBow(dictionary)
-dfm_gs = pdDocgenDict2dictBow(pdDoc=tr_df['Text'], dictionary=dictionary)
-dfm_gensin_df = genDoc2pdBow(pdDoc=tr_df['Text'], dictionary=dictionary,index=None,fillna=0.)
+dfm_gs_df = pd.DataFrame.from_dict(dfm_gs).T.fillna(0)
+order_df_count(dfm_gs_df).head()
+dfm_gs_df.head()
 
-diff_ = check_differences(set(dfm_sc.keys()), set(dfm_gensin_df.columns))
-
+diff = check_differences(set(dfm_sc.keys()), set(dfm_gs_df.columns))
 
 
 
 # Plain Gensim
-dense_vector= matutils.corpus2dense(sparse_vector,num_terms=len(dictionary.token2id))
+# dense_vector= matutils.corpus2dense(sparse_vector,num_terms=len(dictionary.token2id))
 
 
-
-
-# dfm_scracth_df.head()
-# order_df_count(dfm_scracth_df).head()
-
-# dfm_sklearn_df.head()
-# order_df_count(dfm_sklearn_df).head()
-
-# order_df_count(dfm_gensin_df).head()
-# dfm_gensin_df.head()
 
 
 

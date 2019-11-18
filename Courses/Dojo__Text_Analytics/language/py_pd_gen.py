@@ -253,7 +253,7 @@ def genDoc2pdBow(
     fillna=0):
     ''' Tranforms a Pandas Doc with a Gensim doc to a Pandas BOW''' 
     dict_bow = pdDocgenDict2dictBow(pdDoc, dictionary)
-    if index is not None:
+    if index is None:
         return pd.DataFrame.from_dict(dict_bow).fillna(fillna)
     return pd.DataFrame.from_dict(dict_bow).fillna(fillna).set_index(index)
 
