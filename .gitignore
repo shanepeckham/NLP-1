@@ -1,5 +1,6 @@
 
 *.corpus
 .idea
+*.pyc
 .vscode
 **/data/

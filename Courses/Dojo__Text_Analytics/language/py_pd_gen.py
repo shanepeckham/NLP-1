@@ -20,8 +20,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-
-
 ''' 
                             DEFINITIONS
                             ===========
@@ -188,7 +186,7 @@ def pdBow2dictTfidf(df:pd.DataFrame):
 
 ''' 
         Sklearn 
-        ======
+        =======
 '''
 
 ''' BOW '''
@@ -219,7 +217,6 @@ default_tfidf_vectorizer = TfidfVectorizer(
         ngram_range=(1,1),
         stop_words=stopwords.words('english'))
 
-
 def pdDoc2pdTfidf_sklearn(
     df:pd.Series,
     vectorizer:TfidfVectorizer=default_tfidf_vectorizer):
@@ -233,21 +230,30 @@ def pdDoc2pdTfidf_sklearn(
 #     pass
     
 
-''' Gensim '''
+''' 
+        Gensim 
+        ======
+'''
 
 def pdDocgenDict2dictBow(
     pdDoc:pd.Series, 
     dictionary:gensim.corpora.dictionary.Dictionary):
     ''' Tranform pandas Doc Representation to a Dict '''
+    bow = pdDoc.apply(dictionary.doc2bow)
     genbow = defaultdict(lambda: defaultdict(int))
-    for doc_id, doc_values in enumerate(pdDoc):
+    for doc_id, doc_values in enumerate(bow):
         for token_id, token_count in enumerate(doc_values):
             genbow[doc_id][dictionary[token_id]] = token_count
     return genbow
 
-def genDoc2pdBow(doc,index=None,fillna=0):
-    dict_bow = gensinBow2dict(doc)
-    if index is not None:
+def genDoc2pdBow(
+    pdDoc:pd.Series, 
+    dictionary:gensim.corpora.dictionary.Dictionary,
+    index=None,
+    fillna=0):
+    ''' Tranforms a Pandas Doc with a Gensim doc to a Pandas BOW''' 
+    dict_bow = pdDocgenDict2dictBow(pdDoc, dictionary)
+    if index is None:
         return pd.DataFrame.from_dict(dict_bow).fillna(fillna)
     return pd.DataFrame.from_dict(dict_bow).fillna(fillna).set_index(index)
 
