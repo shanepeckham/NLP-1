@@ -11,7 +11,7 @@ import string
 
 from utils.nlp_utils import preproces
 from utils.general import parse_yaml
-from scripts.catalog import Catalog, load_catalog
+from scripts.catalog import Catalog, load_catalog, load_corpus
 
 import spacy
 from spacy import displacy
@@ -21,25 +21,23 @@ paths = config['paths']
 catalog = load_catalog(path=paths['catalog'],name='only_US')
 print(len(catalog.documents))
 
-docu1 = catalog.documents[0]
-docu2 = catalog.documents[1]
-raw_text = docu1.raw_text
-text = docu1.clean_text
+# docu1 = catalog.documents[0]
+# docu2 = catalog.documents[1]
+# raw_text = docu1.raw_text
+# text = docu1.clean_text
 
-text[250:500]
+# text[250:500]
 
 '''
 SPACY PIPELINE
 --------------
 '''
 nlp = spacy.load('en_core_web_sm') # Powerfull model with everytihing included
-d = nlp(text)
-
-displacy.render(d[250:500],style='ent',jupyter=True)
-
-print(d[1].text)
-print(d[1].lemma_)
-print(d[1].tag_)
+# d = nlp(text)
+# # displacy.render(d[250:500],style='ent',jupyter=True)
+# print(d[1].text)
+# print(d[1].lemma_)
+# print(d[1].tag_)
 
 def spacy_cleaning(
     document,
@@ -51,10 +49,21 @@ def spacy_cleaning(
                 return w.tag_ in tags and not w.is_punct and not w.is_stop and w.ent_ not in entities_to_remove
         return w.tag_ in tags and not w.is_punct and not w.is_stop 
 
-    words = [ word for word in d if pass_test(word)]
+    words = [ word for word in document if pass_test(word)]
     tokens = [ word.lemma_.lower().strip() if word.lemma_ != "-PRON-" else word.lower_ for word in words ]
     return ' '.join(tokens)
 
-tokens = spacy_cleaning(d)
-tokens[250:500]
-print(tokens[:1000])
+# tokens = spacy_cleaning(d)
+# tokens[250:500]
+# print(tokens[:1000])
+
+
+''' Apply to multiple documents '''
+
+docs = list()
+for d,doc in enumerate(catalog.documents):
+    print('[INFO]: Parsing doc ',d)
+    text = nlp(doc.clean_text)
+    doc.processed_text = spacy_cleaning(text)
+    docs.append(doc.processed_text)
+
