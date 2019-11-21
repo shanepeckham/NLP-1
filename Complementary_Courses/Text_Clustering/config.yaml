@@ -1,0 +1,7 @@
+paths: 
+    catalog: data/catalog
+    stopwords: data/stopwords/
+    data: data/knowledge_dashboard
+
+topic: isocyanate
+classes: [relevant, irrelevant]
