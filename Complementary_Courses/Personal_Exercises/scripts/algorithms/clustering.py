@@ -18,22 +18,6 @@ from wordcloud import WordCloud
 UTILS
 =====
 '''
-# def tfidf_to_dataframe(model): # Model
-#     ''' Given a Model instance, returns its IDF score for each word as a DataFrame '''
-#     return pd.DataFrame({
-#         "word": [ k for k,v in model.token2id.items() ],
-#         "idf":  [ model.mapping.idf_[v] \
-#                     for k,v in model.token2id.items()]
-#         }).sort_values("idf",ascending=False)
-
-# def get_most_relevant_terms(
-#     tfidf_df:pd.DataFrame,
-#     n_terms:int):
-#     ''' Return the first max_terms terms relevant by their IDF value '''
-#     if not isinstance(tfidf_df,pd.DataFrame):
-#         tfidf_df = tfidf_to_dataframe(tfidf_df)
-#     return tfidf_df.sort_values(
-#         by='idf', ascending=False).iloc[:n_terms,:]['word'].tolist()
 
 def subsample_tfidf_by_cluster(model,words):
     ''' Return a sample version of a TFIDF for the words of a cluster '''
@@ -58,21 +42,6 @@ def compute_word_importance(model,words_of_cluster=None):
             scores['avg_tf_idf'].append(np.max(t)*i)
             scores['norm_tf_idf'].append(np.linalg.norm(t)*i)
     return scores
-
-# def gather_clusters_information(model,cluster_words):
-#     ''' 
-#     Construct a dictionary where the key is the cluster ID 
-#     and the values are all the information computed about it:
-#         - Most important words
-#         - TFIDF representation of the cluster for those words
-#         - Scores for the different methods for each of those words
-#     '''
-#     clusters = defaultdict(dict)
-#     for c,words in cluster_words.items():
-#         ws = {'words': words}
-#         tfidf = subsample_by_idf(model,words)
-#         scores = compute_word_importance
-
 
 
 '''
@@ -122,14 +91,12 @@ def kmean_clustering(
     return cluster_words
 
 
-
 ''' PLOTS  '''
 
 def mask_(url="https://image.shutterstock.com/image-illustration/flask-word-cloud-artwork-isolated-260nw-185529119.jpg"):
     return np.array(
         Image.open(
             requests.get(url,stream=True).raw))
-
 
 def cluster_to_wordcloud(
     df, method='idf', max_words=100, use_mask=False):
@@ -143,8 +110,6 @@ def cluster_to_wordcloud(
         background_color="white").generate_from_frequencies(
             frequencies=dict(zip(df.words, df[method])))
     return wordcloud
-
-
 
 def plot_clusters_as_wordclouds(
     tfidf:pd.DataFrame, 
@@ -183,37 +148,6 @@ def plot_clusters_as_wordclouds(
     plt.tight_layout()
     plt.show()
     return
-    
-
-# def clusters_to_wordclouds(
-#     tfidf_df:pd.DataFrame, 
-#     cluster_words,
-#     use_mask=True,
-#     n_cols=3):
-#     '''
-#     Create a grid with a WordCloud for each Cluster
-#     '''
-#     n_rows = len(cluster_words)//n_cols
-#     _, axs = plt.subplots(
-#         nrows=n_rows, ncols=n_cols,
-#         figsize=(n_cols*5,n_rows*5))
-#     # For each cluster
-#     for cluster, words in cluster_words.items():
-#         # Filter the tfidf to the words in this cluster
-#         subtfidf = tfidf_df[tfidf_df.word.isin(words)]
-#         # Create the wordcloud attending to the inverse of idf
-#         wordcloud = WordCloud(
-#             max_words=100, 
-#             mask=mask_ if use_mask else None,
-#             background_color="white").generate_from_frequencies(
-#                 frequencies=dict(zip(subtfidf.word, subtfidf.idf)))
-#         # Plot the resulting wordcloud
-#         axs[cluster // n_cols, cluster % n_cols].imshow(wordcloud)
-#         axs[cluster // n_cols, cluster % n_cols].axis('off')
-#     plt.tight_layout()
-#     plt.show()
-#     return
-
 
 
 
