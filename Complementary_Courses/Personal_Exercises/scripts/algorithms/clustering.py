@@ -97,13 +97,15 @@ HIERARCHICAL CLUSTERING
 =======================
 '''
 
-
-def tfidf_to_dataframe(model): # Model
-    return pd.DataFrame({
+def tfidf_to_idf_dict(model):
+    return {
         "word": [ k for k,v in model.token2id.items() ],
-        "idf":  [ model.mapping.idf_[v] \
-                    for k,v in model.token2id.items()]
-        }).sort_values("idf",ascending=False)
+        "idf":  [ model.mapping.idf_[v] for k,v in model.token2id.items()]}
+
+
+def tfidf_to_idf_scores(model): # Model
+    d = tfidf_to_idf_dict(model)
+    return pd.DataFrame().sort_values("idf",ascending=False)
 
 
 def get_most_relevant_terms(
@@ -111,7 +113,7 @@ def get_most_relevant_terms(
     n_terms:int):
     ''' Return the first max_terms terms relevant by their IDF value '''
     if not isinstance(tfidf_df,pd.DataFrame):
-        tfidf_df = tfidf_to_dataframe(tfidf_df)
+        tfidf_df = tfidf_to_idf_scores(tfidf_df)
     return tfidf_df.sort_values(
         by='idf', ascending=False).iloc[:n_terms,:]['word'].tolist()
 
@@ -137,7 +139,7 @@ def ward_clustering(
     '''
     # If not DF representation of the model is passed, compute it
     if tfidf_df is None:
-        tfidf_df = tfidf_to_dataframe(model)
+        tfidf_df = tfidf_to_idf_scores(model)
     # If not list of most relevant terms by IDF is passed, compute it
     if n_terms is None:
         n_terms = tfidf_df.shape[1]    
@@ -243,14 +245,9 @@ if __name__ == '__main__':
         max_docs=50)
 
     pos_tfidf.representation.head()
-    pos_tfidf_df = pd.DataFrame(
-        {"word": [k for k,v in pos_tfidf.token2id.items()],
-        "idf": [pos_tfidf.mapping.idf_[v] \
-            for k,v in pos_tfidf.token2id.items()]}) \
-            .sort_values("idf",ascending=False)
+    pos_tfidf_df = tfidf_to_dataframe(pos_tfidf)
     pos_tfidf_df.head()
 
-    pos_tfidf_df = tfidf_to_dataframe(pos_tfidf)
     pos_terms = get_most_relevant_terms(pos_tfidf_df,max_terms=50)
     
 

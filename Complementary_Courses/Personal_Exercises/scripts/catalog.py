@@ -142,20 +142,28 @@ class Catalog:
                 new_catalog.docs_by_topic[document.topic].append(document)
         return new_catalog
 
-    def _collect_corpus_as_list(self):
-        return [d.clean_text for d in self.documents]
+    def _collect_corpus_as_list(self, attr):
+        ''' Return and Update Catalog.corpus as a list of strings '''
+        # Check type of text to collect is an attribute of the document
+        err = lambda a,d: '[ERROR]: Document {} has no attribute {}'.format(d,a)
+        docs = []
+        for d in self.documents:
+            assert hasattr(d, attr), err
+            docs.append(getattr(d,attr))
+        return  docs
 
-    def _collect_corpus_as_string(self):
-        return '\n'.join(self._collect_corpus_as_list(self.documents))
+    def _collect_corpus_as_string(self, attr):
+        ''' Return and Update Catalog.corpus as a unique string '''
+        return '\n'.join(self._collect_corpus_as_list(self.documents, attr))
 
-    def collect_corpus(self, type_:str='list'):
-        ''' Return and Update Catalog.corpus with the desired format '''
-        types = ['list', 'string']
-        err = lambda t: 'Invalid argument type {}. Not in in '.format(t,types)
-        if type_ == 'list':
-            self.corpus = self._collect_corpus_as_list()
-        if type_ == 'string':
-            self.corpus = self._collect_corpus_as_string()
+    def collect_corpus(self, attr:str='clean_text', form:type=list):
+        ''' Return and Update Catalog.corpus with the desired form '''
+        types = [list, str]
+        err = lambda t: 'Invalid argument type {}. Not in in '.form(t,types)
+        if issubclass(form,list):
+            self.corpus = self._collect_corpus_as_list(attr)
+        if issubclass(form,str):
+            self.corpus = self._collect_corpus_as_string(attr)
         return self.corpus
                 
     def to_matrix(
@@ -243,48 +251,49 @@ def load_corpus(path,name):
             return pickle.load(f)
 
 
-def path_to_docs(data_path, topic, classes, max_docs=None, verbose=0):
-    ''' Return the list of paths to the documents '''
-    d = 1
-    corpus = Corpus()
-    print('[INFO]: Creating Catalog')
-    print('-------------------------')
-    for clas in classes:
-        countries = os.listdir(JP(data_path, '_'.join([topic,clas])))
-        for _,country in enumerate(countries):
-            idxs = os.listdir(JP(data_path, '_'.join([topic,clas]),country))
-            for idx in idxs:
-                cs = os.listdir(JP(data_path, '_'.join([topic,clas]),country,idx))
-                for c in cs:
-                    files = glob(JP(data_path, '_'.join([topic,clas]),country,idx,c,'oc_docnorm_*.json'))
-                    if max_docs is not None and d > max_docs:
-                        return corpus
-                    # If there is files
-                    if len(files) > 0:
-                        document = Document(
-                            topic=topic, 
-                            label=clas,
-                            country=country, 
-                            ident=idx, 
-                            code=c,
-                            path = files[0])
-                        # Read the Json
-                        document.read_document()
-                        if verbose > 0: 
-                            print('Reading document {}: -- Topic:{} -- Country: {} -- Lenght: {}'.format(
-                                d, document.topic, document.country, document.raw_text_len))
-                        # Perform a first clearning
-                        document.clean_document()
-                        if verbose > 0: 
-                            print('Parsing document {}: -- Topic:{} -- Country: {} -- Lenght: {}'.format(
-                                d, document.topic, document.country, document.raw_text_len))
-                        corpus.documents.append(document)
-                        corpus.docs_by_topic[document.topic].append(document)
-                        d += 1
-    return corpus
-
 
 if __name__ == '__main__':
+
+    def path_to_docs(data_path, topic, classes, max_docs=None, verbose=0):
+        ''' Return the list of paths to the documents '''
+        d = 1
+        corpus = Corpus()
+        print('[INFO]: Creating Catalog')
+        print('-------------------------')
+        for clas in classes:
+            countries = os.listdir(JP(data_path, '_'.join([topic,clas])))
+            for _,country in enumerate(countries):
+                idxs = os.listdir(JP(data_path, '_'.join([topic,clas]),country))
+                for idx in idxs:
+                    cs = os.listdir(JP(data_path, '_'.join([topic,clas]),country,idx))
+                    for c in cs:
+                        files = glob(JP(data_path, '_'.join([topic,clas]),country,idx,c,'oc_docnorm_*.json'))
+                        if max_docs is not None and d > max_docs:
+                            return corpus
+                        # If there is files
+                        if len(files) > 0:
+                            document = Document(
+                                topic=topic, 
+                                label=clas,
+                                country=country, 
+                                ident=idx, 
+                                code=c,
+                                path = files[0])
+                            # Read the Json
+                            document.read_document()
+                            if verbose > 0: 
+                                print('Reading document {}: -- Topic:{} -- Country: {} -- Lenght: {}'.format(
+                                    d, document.topic, document.country, document.raw_text_len))
+                            # Perform a first clearning
+                            document.clean_document()
+                            if verbose > 0: 
+                                print('Parsing document {}: -- Topic:{} -- Country: {} -- Lenght: {}'.format(
+                                    d, document.topic, document.country, document.raw_text_len))
+                            corpus.documents.append(document)
+                            corpus.docs_by_topic[document.topic].append(document)
+                            d += 1
+        return corpus
+
 
     config = parse_yaml('config.yaml')
     paths = config['paths']
