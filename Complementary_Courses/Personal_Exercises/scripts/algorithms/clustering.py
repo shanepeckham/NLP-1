@@ -5,8 +5,7 @@ import pandas as pd
 from collections import defaultdict
 
 from sklearn.cluster import KMeans
-from scipy.cluster.hierarchy import linkage, dendrogram
-from sklearn.metrics.pairwise import cosine_similarity
+from scipy.cluster.hierarchy import linkage, dendrogram, pdist, fcluster
 
 import requests
 from PIL import Image
@@ -172,6 +171,9 @@ HIERARCHICAL CLUSTERING
 #         labels=terms)
 #     return
 
+def compute_dist_matrix(df,metric='cosine'):
+    return pdist(df, metric=metric)
+
 
 def hca_document_clustering(
     model, # Model
@@ -189,8 +191,10 @@ def hca_document_clustering(
         subsampling the TFIDF by the most important words (columns)?
     '''
     X = model.representation
-    print('[INFO]: Performing Hierarchical Clustering')
-    linkage_matrix = linkage(y=X, method=method,metric=distance_metric)
+    print('[INFO]: Computing Distance Matrix using {} distance'.format(distance_metric))
+    d = compute_dist_matrix(X,distance_metric)
+    print('[INFO]: Performing Hierarchical Clustering using {} linkage'.format(method))
+    linkage_matrix = linkage(y=d, method=method)
     return linkage_matrix
 
 
