@@ -32,6 +32,7 @@ def compute_word_importance(model,words_of_cluster=None):
     importance methods '''
     scores = defaultdict(list)
     if not words_of_cluster: words_of_cluster = model.token2id.keys()
+    print('[INFO]: Computing word importance for each cluster')
     for k,v in model.token2id.items():
         # With this comparison we save a lot of time
         if k in words_of_cluster:
@@ -76,8 +77,8 @@ def kmean_clustering(
     '''
     # 1. Performs K-Means algorithm to identify clusters
     km = KMeans(
-        n_clusters=num_clusters,
-        n_jobs=-1)
+        n_clusters=num_clusters) #,
+        #n_jobs=-1)
     km.fit_transform(model.representation)
     # clusters = km.labels_.tolist()
 
@@ -132,7 +133,7 @@ def plot_clusters_as_wordclouds(
     
     for cluster,words in cluster_words.items():
 
-        cluster_word_scores = pd.DataFrame(compute_word_importance(tfidf,cluster))
+        cluster_word_scores = pd.DataFrame(compute_word_importance(tfidf,words))
         print(cluster_word_scores.head())
         print(cluster_word_scores.shape)
         # cluster_tfidf = sort_scores(scores, 'norm_tf_idf')
@@ -152,65 +153,63 @@ def plot_clusters_as_wordclouds(
 
 
 
-
-
 '''
 HIERARCHICAL CLUSTERING 
 =======================
 '''
 
-def subsample_by_idf(model):
-    return
+# def subsample_by_idf(model):
+#     return
 
 
-def ward_clustering(
-    model, # Model
-    tfidf_df:pd.DataFrame=None,
-    n_terms:int=None):
-    '''
-    Performs Ward Hierarchical Cluster
-    Arguments:
-        - model: Model instance representation
-        - tfidf_df: pd.DataFrame of the IDF scores for the terms of that model
-        - max_terms: filter first max_terms terms to use for the cluster by idf
-    NOTE: 
-        Filtering by terms is breaking the whole thing when plotting ??
-        Does it make sense to run it on all and then truncate the plot rather than
-        subsampling the TFIDF by the most important words (columns)?
-    '''
-    # If not DF representation of the model is passed, compute it
-    if tfidf_df is None:
-        tfidf_df = tfidf_to_idf_scores(model)
-    # If not list of most relevant terms by IDF is passed, compute it
-    if n_terms is None:
-        n_terms = tfidf_df.shape[1]    
+# def ward_clustering(
+#     model, # Model
+#     tfidf_df:pd.DataFrame=None,
+#     n_terms:int=None):
+#     '''
+#     Performs Ward Hierarchical Cluster
+#     Arguments:
+#         - model: Model instance representation
+#         - tfidf_df: pd.DataFrame of the IDF scores for the terms of that model
+#         - max_terms: filter first max_terms terms to use for the cluster by idf
+#     NOTE: 
+#         Filtering by terms is breaking the whole thing when plotting ??
+#         Does it make sense to run it on all and then truncate the plot rather than
+#         subsampling the TFIDF by the most important words (columns)?
+#     '''
+#     # If not DF representation of the model is passed, compute it
+#     if tfidf_df is None:
+#         tfidf_df = tfidf_to_idf_scores(model)
+#     # If not list of most relevant terms by IDF is passed, compute it
+#     if n_terms is None:
+#         n_terms = tfidf_df.shape[1]    
     
-    terms = get_most_relevant_terms(tfidf_df, n_terms)
-    X = model.representation
+#     terms = get_most_relevant_terms(tfidf_df, n_terms)
+#     X = model.representation
 
-    ## NOTE: Finally found something weird going on here.. Needs transposition
-    X = X[terms].T
-    print('Shape of filtered TFIDF Matrix by IDF: ', X.shape)
+#     ## NOTE: Finally found something weird going on here.. Needs transposition
+#     X = X[terms].T
+#     print('Shape of filtered TFIDF Matrix by IDF: ', X.shape)
 
-    dist = 1 - cosine_similarity(X)
-    linkage_matrix = ward(dist)
-    print('Shape of resulting Linkage Matrix', linkage_matrix.shape)
-    return linkage_matrix
+#     dist = 1 - cosine_similarity(X)
+#     linkage_matrix = ward(dist)
+#     print('Shape of resulting Linkage Matrix', linkage_matrix.shape)
+#     return linkage_matrix
 
 
-def plot_dendogram_from_catalog(
-    model, 
-    n_terms:int,
-    truncate_mode=None,
-    clusters:int=5):
-    linkage_matrix = ward_clustering(model=model,n_terms=n_terms)
-    terms = get_most_relevant_terms(tfidf_df=model,n_terms=n_terms)
-    plot_dendogram_from_linkage_matrix(
-        linkage_matrix=linkage_matrix,
-        truncate_mode=truncate_mode,
-        clusters=clusters,
-        labels=terms)
-    return
+# def plot_dendogram_from_catalog(
+#     model, 
+#     n_terms:int,
+#     truncate_mode=None,
+#     clusters:int=5):
+#     linkage_matrix = ward_clustering(model=model,n_terms=n_terms)
+#     terms = get_most_relevant_terms(tfidf_df=model,n_terms=n_terms)
+#     plot_dendogram_from_linkage_matrix(
+#         linkage_matrix=linkage_matrix,
+#         truncate_mode=truncate_mode,
+#         clusters=clusters,
+#         labels=terms)
+#     return
 
 
 def plot_dendogram_from_linkage_matrix(
@@ -250,23 +249,19 @@ if __name__ == '__main__':
     ------------------------
     '''    
     import sys
-    sys.path.append('../utils')
-    sys.path.append('../scripts')
-    from scripts.catalog import load_corpus, Catalog
+    sys.path.append('../../utils')
+    sys.path.append('../../scripts')
+    from nltk.corpus import stopwords
+    from utils.general import parse_yaml
+    from scripts.catalog import load_catalog, Catalog
     from sklearn.feature_extraction.text import TfidfVectorizer
 
+    config = parse_yaml('config.yaml')
+    paths = config['paths']
+
     catalog = Catalog()
-    corpus = load_corpus(path=paths['catalog'], name='corpus1')
-    catalog.load_corpus(corpus=corpus)
-
-    filters = dict(
-        topic = ['isocyanate'],
-        label='relevant',
-        country = ['CN'],       # country = OF_INTEREST
-        raw_text_len = 100)
-
-    pos_catalog = catalog.filter_catalog(filters)
-    pos_catalog.collect_corpus()
+    catalog = load_catalog(path=paths['catalog'], name='spacy_pipeline_on_US_corpus')
+    catalog.collect_corpus(attr='processed_text', form=list)
 
     ''' TFIDF '''
     vectorizer = TfidfVectorizer(
@@ -278,55 +273,59 @@ if __name__ == '__main__':
         max_features=3000,
         ngram_range=(1,3),
         lowercase=True,
-        stop_words=SW)
+        stop_words=stopwords.words('english'))
 
-    pos_tfidf = pos_catalog.to_matrix(
+    tfidf = catalog.to_matrix(
         vectorizer=vectorizer,
         modelname='TFIDF',
         max_docs=50)
 
-    pos_tfidf.representation.head()
-    pos_tfidf_df = tfidf_to_dataframe(pos_tfidf)
-    pos_tfidf_df.head()
+    tfidf.representation.head()
 
-    pos_terms = get_most_relevant_terms(pos_tfidf_df,max_terms=50)
-    
-
-    ''' REGUALAR CLUSTERING '''
-    NUM_CLUSTERS = 6
-    WORDS_PER_CLUSTER = 500
+    '''
+    FLAT CLUSTERING
+    ---------------
+    '''
+    NUM_CLUSTERS = 4
+    EMBED_SIZE = 10000
+    WORDS_PER_CLUSTER = 50
 
     clustered_words = kmean_clustering(
-        model=pos_catalog.models['TFIDF'],
+        model=catalog.models['TFIDF'],
         num_clusters=NUM_CLUSTERS, 
         words_per_cluster=WORDS_PER_CLUSTER)
 
     ''' Clustering2WordCloud '''
-    clusters_to_wordclouds(pos_tfidf_df, clustered_words)
-
-
-    ''' HIERARCHICAL CLUSTERING '''
-    # Alternative 1 - Computing everything in advanced
-    MAX_TERMS = 500
-    pos_terms = pos_tfidf_df.sort_values(
-        by='idf',ascending=False).iloc[:MAX_TERMS,:]['word'].tolist()
-
-    X = pos_catalog.models['TFIDF'].representation
-    X = X[pos_terms]
-    X.head(5)
-
-    dist = 1 - cosine_similarity(X)
-    linkage_matrix = ward(dist)
-    plot_dendogram_from_linkage_matrix(linkage_matrix, pos_terms)
+    plot_clusters_as_wordclouds(tfidf, clustered_words, method='idf')
 
 
 
-    # Aternative 2 - Directly from the catalog.models['TFIDF']
-    pos_matrix = ward_clustering(
-        model=pos_catalog.models['TFIDF'],
-        tfidf_df=pos_tfidf_df,
-        terms = pos_terms)
 
-    ''' Clustering to Dendogram ''' 
-    plot_dendogram_from_linkage_matrix(pos_matrix, clusters=5)
-    # plot_dendogram_from_linkage_matrix(pos_catalog.models['TFIDF'])
+    # '''
+    # HIERARCHICAL CLUSTERING
+    # -----------------------
+    # '''
+    # # Alternative 1 - Computing everything in advanced
+    # MAX_TERMS = 500
+    # terms = tfidf_df.sort_values(
+    #     by='idf',ascending=False).iloc[:MAX_TERMS,:]['word'].tolist()
+
+    # X = catalog.models['TFIDF'].representation
+    # X = X[terms]
+    # X.head(5)
+
+    # dist = 1 - cosine_similarity(X)
+    # linkage_matrix = ward(dist)
+    # plot_dendogram_from_linkage_matrix(linkage_matrix, terms)
+
+
+
+    # # Aternative 2 - Directly from the catalog.models['TFIDF']
+    # matrix = ward_clustering(
+    #     model=catalog.models['TFIDF'],
+    #     tfidf_df=tfidf_df,
+    #     terms = terms)
+
+    # ''' Clustering to Dendogram ''' 
+    # plot_dendogram_from_linkage_matrix(matrix, clusters=5)
+    # # plot_dendogram_from_linkage_matrix(catalog.models['TFIDF'])

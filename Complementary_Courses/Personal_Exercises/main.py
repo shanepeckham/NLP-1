@@ -16,54 +16,54 @@ from scripts.catalog import Catalog, load_catalog, load_corpus
 import spacy
 from spacy import displacy
 
+
+
 config = parse_yaml('config.yaml')
 paths = config['paths']
-catalog = load_catalog(path=paths['catalog'],name='only_US')
+catalog = Catalog()
+catalog = load_catalog(path=paths['catalog'], name='spacy_pipeline_on_US_corpus')
 print(len(catalog.documents))
 
-# docu1 = catalog.documents[0]
-# docu2 = catalog.documents[1]
-# raw_text = docu1.raw_text
-# text = docu1.clean_text
 
-# text[250:500]
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scripts.algorithms.clustering import (
+    kmean_clustering, 
+    plot_clusters_as_wordclouds)
+
+
+''' TFIDF '''
+vectorizer = TfidfVectorizer(
+    min_df=.1,
+    max_df=.7,
+    norm='l2',
+    use_idf=True,
+    smooth_idf=True,
+    max_features=3000,
+    ngram_range=(1,3),
+    lowercase=True,
+    stop_words=stopwords.words('english'))
+
+catalog.collect_corpus(attr='processed_text', form=list)
+tfidf = catalog.to_matrix(
+    vectorizer=vectorizer,
+    modelname='TFIDF',
+    max_docs=50)
+
+tfidf.representation.head()
 
 '''
-SPACY PIPELINE
---------------
+FLAT CLUSTERING
+---------------
 '''
-nlp = spacy.load('en_core_web_sm') # Powerfull model with everytihing included
-# d = nlp(text)
-# # displacy.render(d[250:500],style='ent',jupyter=True)
-# print(d[1].text)
-# print(d[1].lemma_)
-# print(d[1].tag_)
+NUM_CLUSTERS = 4
+EMBED_SIZE = 10000
+WORDS_PER_CLUSTER = 50
 
-def spacy_cleaning(
-    document,
-    tags_to_keep=['JJ', 'NN', 'NNS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'],
-    entities_to_remove=['ORG,NORP,GPE,PERSON']):
+clustered_words = kmean_clustering(
+    model=catalog.models['TFIDF'],
+    num_clusters=NUM_CLUSTERS, 
+    words_per_cluster=WORDS_PER_CLUSTER)
 
-    def pass_test(w, tags=tags_to_keep):
-        if w.ent_type_ == 0:
-                return w.tag_ in tags and not w.is_punct and not w.is_stop and w.ent_ not in entities_to_remove
-        return w.tag_ in tags and not w.is_punct and not w.is_stop 
-
-    words = [ word for word in document if pass_test(word)]
-    tokens = [ word.lemma_.lower().strip() if word.lemma_ != "-PRON-" else word.lower_ for word in words ]
-    return ' '.join(tokens)
-
-# tokens = spacy_cleaning(d)
-# tokens[250:500]
-# print(tokens[:1000])
-
-
-''' Apply to multiple documents '''
-
-docs = list()
-for d,doc in enumerate(catalog.documents):
-    print('[INFO]: Parsing doc ',d)
-    text = nlp(doc.clean_text)
-    doc.processed_text = spacy_cleaning(text)
-    docs.append(doc.processed_text)
-
+''' Clustering2WordCloud '''
+plot_clusters_as_wordclouds(tfidf, clustered_words, method='idf')
