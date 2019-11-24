@@ -5,7 +5,7 @@ import pandas as pd
 from collections import defaultdict
 
 from sklearn.cluster import KMeans
-from scipy.cluster.hierarchy import ward, dendrogram
+from scipy.cluster.hierarchy import linkage, dendrogram
 from sklearn.metrics.pairwise import cosine_similarity
 
 import requests
@@ -158,45 +158,6 @@ HIERARCHICAL CLUSTERING
 =======================
 '''
 
-# def subsample_by_idf(model):
-#     return
-
-
-# def ward_clustering(
-#     model, # Model
-#     tfidf_df:pd.DataFrame=None,
-#     n_terms:int=None):
-#     '''
-#     Performs Ward Hierarchical Cluster
-#     Arguments:
-#         - model: Model instance representation
-#         - tfidf_df: pd.DataFrame of the IDF scores for the terms of that model
-#         - max_terms: filter first max_terms terms to use for the cluster by idf
-#     NOTE: 
-#         Filtering by terms is breaking the whole thing when plotting ??
-#         Does it make sense to run it on all and then truncate the plot rather than
-#         subsampling the TFIDF by the most important words (columns)?
-#     '''
-#     # If not DF representation of the model is passed, compute it
-#     if tfidf_df is None:
-#         tfidf_df = tfidf_to_idf_scores(model)
-#     # If not list of most relevant terms by IDF is passed, compute it
-#     if n_terms is None:
-#         n_terms = tfidf_df.shape[1]    
-    
-#     terms = get_most_relevant_terms(tfidf_df, n_terms)
-#     X = model.representation
-
-#     ## NOTE: Finally found something weird going on here.. Needs transposition
-#     X = X[terms].T
-#     print('Shape of filtered TFIDF Matrix by IDF: ', X.shape)
-
-#     dist = 1 - cosine_similarity(X)
-#     linkage_matrix = ward(dist)
-#     print('Shape of resulting Linkage Matrix', linkage_matrix.shape)
-#     return linkage_matrix
-
-
 # def plot_dendogram_from_catalog(
 #     model, 
 #     n_terms:int,
@@ -212,29 +173,57 @@ HIERARCHICAL CLUSTERING
 #     return
 
 
+def hca_document_clustering(
+    model, # Model
+    method:str='ward',
+    distance_metric:str='cosine'):
+    '''
+    Performs Hierarchical Cluster
+    Arguments:
+        - model: Model instance representation
+        - methods: How the distance between clusters is minimized
+        - distance_metric: How to measure the distance between 2 clusters
+    NOTE: 
+        Filtering by terms is breaking the whole thing when plotting ??
+        Does it make sense to run it on all and then truncate the plot rather than
+        subsampling the TFIDF by the most important words (columns)?
+    '''
+    X = model.representation
+    print('[INFO]: Performing Hierarchical Clustering')
+    linkage_matrix = linkage(y=X, method=method,metric=distance_metric)
+    return linkage_matrix
+
+
 def plot_dendogram_from_linkage_matrix(
     linkage_matrix, 
-    truncate_mode=None,
-    clusters:int=None,
+    truncate_mode:str=None,
+    p:int=None,
     labels:list=None,
-    orientation='right'):
+    orientation='right',
+    show_leaf_counts=True,
+    leaf_rotation=0.,
+    leaf_font_size=12,
+    figsize=None):
     ''' Plot a dendogram out of its linkage matrix '''
     
-    _, ax = plt.subplots(figsize=(15, 20)) # set size
+    _, ax = plt.subplots(figsize=figsize) 
 
     dendrogram(
         Z=linkage_matrix,
-        p=clusters,                   # p == clusters 
-        truncate_mode=truncate_mode,  # show only the last p merged clusters
+        p=p,                            
+        truncate_mode=truncate_mode,    
         orientation=orientation, 
+        show_leaf_counts=show_leaf_counts,
+        leaf_rotation=leaf_rotation,
+        leaf_font_size=leaf_font_size,
         labels=labels, 
         ax=ax)
 
     plt.tick_params(
-        axis= 'x',          # changes apply to the x-axis
-        which='both',      # both major and minor ticks are affected
-        bottom='off',      # ticks along the bottom edge are off
-        top='off',         # ticks along the top edge are off
+        axis= 'x',          
+        which='both',      
+        bottom='off',     
+        top='off',       
         labelbottom='off')
 
     plt.tight_layout() #show plot with tight layout
