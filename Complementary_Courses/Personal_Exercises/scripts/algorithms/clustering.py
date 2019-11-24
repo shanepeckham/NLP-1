@@ -5,7 +5,8 @@ import pandas as pd
 from collections import defaultdict
 
 from sklearn.cluster import KMeans
-from scipy.cluster.hierarchy import linkage, dendrogram, pdist, fcluster
+from scipy.spatial.distance import pdist
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 
 import requests
 from PIL import Image
@@ -171,6 +172,7 @@ HIERARCHICAL CLUSTERING
 #         labels=terms)
 #     return
 
+
 def compute_dist_matrix(df,metric='cosine'):
     return pdist(df, metric=metric)
 
@@ -233,6 +235,27 @@ def plot_dendogram_from_linkage_matrix(
     plt.tight_layout() #show plot with tight layout
     plt.show()
     return
+
+
+''' RETRIEVE INFORMATION AFTER THE CLUSTERING'''
+
+def retrieve_doc_idx_by_level(cluster_idx, idx):
+    ''' Return the indexes of the documents that match the cluster id '''
+    doc_ids = np.array(list(range(len(cluster_idx))))
+    mask = cluster_idx==idx
+    return [c for c,i in zip(doc_ids,mask) if i]
+
+
+def retrieve_hca_info(Z, criterion='maxclust', min_clusters=2, max_clusters=None):
+    if not max_clusters: max_clusters = len(Z)//2+1
+    ''' Retrive the documents that belong to each cluster 
+    for every merge done during the HCA process ''' 
+    cluster_dict = defaultdict(lambda: defaultdict(list))
+    for level in range(min_clusters, max_clusters):
+        cluster_idx = fcluster(Z, level, criterion=criterion)
+        for c in range(level):
+            cluster_dict[level][c].append(retrieve_doc_idx_by_level(cluster_idx,c+1))
+    return cluster_dict
 
 
 if __name__ == '__main__':
