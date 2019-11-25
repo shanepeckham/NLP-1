@@ -52,6 +52,7 @@ tfidf = catalog.to_matrix(
 
 tfidf.representation.head()
 
+
 '''
 FLAT CLUSTERING
 ---------------
@@ -67,3 +68,10 @@ clustered_words = kmean_clustering(
 
 ''' Clustering2WordCloud '''
 plot_clusters_as_wordclouds(tfidf, clustered_words, method='idf')
+
+
+
+
+
+
+
