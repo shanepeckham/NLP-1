@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 from collections import defaultdict
 
 from sklearn.cluster import KMeans
@@ -19,15 +20,40 @@ UTILS
 =====
 '''
 
-def subsample_tfidf_by_cluster(model,words):
-    ''' Return a sample version of a TFIDF for the words of a cluster '''
-    return model[words]
+def filter_cluster(model, clusters, i):
+    ''' Returns the tfidf representation for the centroid of a cluster '''
+    return pd.DataFrame(
+        clusters.cluster_centers_[i].reshape(1,-1), 
+        columns=model.representation.columns)
+
+def compute_word_importance_for_centroid(cluster,words_per_cluster):
+    ''' Return the first (words_per_cluster) with the highest TFIDF score
+    for the centroid of that cluster as a cluster summary document '''
+    scores = pd.DataFrame(cluster.T.reset_index())
+    scores.columns=['word','centroid_score']
+    return scores.sort_values(by='centroid_score',ascending=False)[:words_per_cluster]
+
+
+def subsample_tfidf_by_cluster(tfidf:pd.DataFrame, clusters:KMeans, cluster_id:int):
+    ''' Returns a sample of the TFIDF keeping only the documents (rows) that belong to a particular cluster '''
+    return tfidf.loc[clusters.labels_==cluster_id]
+
+def subsample_tfidf_by_terms(tfidf:pd.DataFrame, words):
+    ''' Return a sample version of a TFIDF for the words of a cluster 
+    NOTE: This function implmented compute_word_importance()'''
+    return tfidf[words]
+
+def cluster_to_tfidf(model, clusters:KMeans, cluster_id:int):
+    submodel = deepcopy(model)
+    submodel.representation = subsample_tfidf_by_cluster(model.representation, clusters, cluster_id)
+    return submodel
+
 
 def get_tf_idf_of_word_from_tfidf_matrix(model,k,v):
     ''' Get the TF vector and IDF float of an specific term '''
     return model.representation[[k]].values, model.mapping.idf_[v]
 
-def compute_word_importance(model,words_of_cluster=None):
+def compute_word_importance_using_documents(model, words_of_cluster=None):
     ''' Compute the importance of a word given the TFIDF for a bunch of
     importance methods '''
     scores = defaultdict(list)
@@ -36,12 +62,13 @@ def compute_word_importance(model,words_of_cluster=None):
     for k,v in model.token2id.items():
         # With this comparison we save a lot of time
         if k in words_of_cluster:
-            scores['words'].append(k)
+            scores['word'].append(k)
             t,i = get_tf_idf_of_word_from_tfidf_matrix(model,k,v)
             scores['idf'].append(i)
-            scores['max_tf_idf'].append(np.max(t)*i)
-            scores['avg_tf_idf'].append(np.max(t)*i)
-            scores['norm_tf_idf'].append(np.linalg.norm(t)*i)
+            scores['max_tf_idf'].append(np.max(t)) # *i
+            scores['avg_tf_idf'].append(np.mean(t)) # *i
+            scores['norm_tf_idf'].append(np.linalg.norm(t)) # *i
+    # scores['centroid_score'] = scores_for_centroid()
     return scores
 
 
@@ -52,7 +79,7 @@ REGULAR CLUSTERING
 
 ''' ALGORITHM '''
 
-def kmean_clustering(
+def kmeans_clustering(
     model, #:Model
     num_clusters:int=4, 
     words_per_cluster:int=None):
@@ -73,23 +100,26 @@ def kmean_clustering(
 
     Returns:
     -------- 
+        - Clustering model instance
         - Dict key='cluster id', value=k_words_closest_to_centroid
     '''
     # 1. Performs K-Means algorithm to identify clusters
     km = KMeans(
         n_clusters=num_clusters) #,
         #n_jobs=-1)
-    km.fit_transform(model.representation)
-    # clusters = km.labels_.tolist()
-
-    # Bring K most similar words to centroid
-    closests_words_to_centroids = km.cluster_centers_.argsort()[:, :-words_per_cluster:-1] 
     
+    # 1. Performs K-Means algorithm to identify clusters
+    clusters=km.fit(model.representation)
+
+    # 2. Bring K most similar words to centroid
+    closests_words_to_centroids = clusters.cluster_centers_.argsort()[:, :-words_per_cluster:-1] 
+    
+    # 3. Create a dictionary {'cluster_id': 'important_words'}
     cluster_words = defaultdict(list)
     for i in range(num_clusters):
         for idx in closests_words_to_centroids[i, :words_per_cluster]:
             cluster_words[i].append(model.id2token[idx])
-    return cluster_words
+    return clusters, cluster_words
 
 
 ''' PLOTS  '''
@@ -109,8 +139,35 @@ def cluster_to_wordcloud(
         max_words=max_words, 
         mask=mask_ if use_mask else None,
         background_color="white").generate_from_frequencies(
-            frequencies=dict(zip(df.words, df[method])))
+            frequencies=dict(zip(df.word, df[method])))
     return wordcloud
+
+
+def plot_centroids_as_wordclouds(
+    model,
+    clusters:KMeans,
+    method:str='centroid_score',
+    max_words_per_cloud=100, use_mask=False, n_cols=2):
+
+    n_rows = len(clusters.cluster_centers_)//n_cols
+    _, axs = plt.subplots(nrows=n_rows, ncols=n_cols,figsize=(n_cols*5,n_rows*5))
+    
+    for c in range(len(clusters.cluster_centers_)):
+        doc = filter_cluster(model,clusters,c)
+        cluster_word_scores = compute_word_importance_for_centroid(doc, max_words_per_cloud)
+        wordcloud = cluster_to_wordcloud(
+            df=cluster_word_scores,
+            method=method,
+            max_words=max_words_per_cloud,
+            use_mask=use_mask)
+        
+        # Plot the resulting wordcloud
+        axs[c // n_cols, c % n_cols].imshow(wordcloud)
+        axs[c // n_cols, c % n_cols].axis('off')
+    plt.tight_layout()
+    plt.show()
+    return
+
 
 def plot_clusters_as_wordclouds(
     tfidf:pd.DataFrame, 
@@ -132,11 +189,8 @@ def plot_clusters_as_wordclouds(
     _, axs = plt.subplots(nrows=n_rows, ncols=n_cols,figsize=(n_cols*5,n_rows*5))
     
     for cluster,words in cluster_words.items():
-
-        cluster_word_scores = pd.DataFrame(compute_word_importance(tfidf,words))
-        print(cluster_word_scores.head())
-        print(cluster_word_scores.shape)
-        # cluster_tfidf = sort_scores(scores, 'norm_tf_idf')
+        
+        cluster_word_scores = pd.DataFrame(compute_word_importance_using_documents(tfidf,words))
         wordcloud = cluster_to_wordcloud(
             df=cluster_word_scores,
             method='norm_tf_idf',
@@ -149,6 +203,51 @@ def plot_clusters_as_wordclouds(
     plt.tight_layout()
     plt.show()
     return
+
+
+
+def plot_subsampled_clusters_as_wordclouds(
+    tfidf:pd.DataFrame, 
+    clusters:KMeans,
+    cluster_words:dict,
+    method:str='idf',
+    max_words_per_cloud=100, use_mask=False, n_cols=2):
+    '''
+    Arguments:
+        - tfidf: TFIDF of the entire Corpus
+        - cluster_words: Dict {'cluster_id': [list of important words]}
+        - methods: the Score Method that give imporance to the word in that cluster
+    Steps:
+        - Iterate for each cluster
+        - Subsample the TFIDF to the Cluster TDIDF (reduce the columns to increase performance)
+        - Get the scores of the chosen methods to give importance to the words --> Not needed ???
+        - Call cluster_to_wordcloud() for that cluster to get its corresponding wordcloud
+    '''
+    n_rows = len(cluster_words)//n_cols
+    _, axs = plt.subplots(nrows=n_rows, ncols=n_cols,figsize=(n_cols*5,n_rows*5))
+    
+    for cluster,words in cluster_words.items():
+        
+        subtfidf = cluster_to_tfidf(tfidf,clusters,cluster)
+        cluster_word_scores = pd.DataFrame(compute_word_importance_using_documents(subtfidf,words))
+
+        wordcloud = cluster_to_wordcloud(
+            df=cluster_word_scores,
+            method='norm_tf_idf',
+            max_words=max_words_per_cloud,
+            use_mask=use_mask)
+        
+        # Plot the resulting wordcloud
+        axs[cluster // n_cols, cluster % n_cols].imshow(wordcloud)
+        axs[cluster // n_cols, cluster % n_cols].axis('off')
+    plt.tight_layout()
+    plt.show()
+    return
+
+
+
+
+''' ================================================================================================================ '''
 
 
 
