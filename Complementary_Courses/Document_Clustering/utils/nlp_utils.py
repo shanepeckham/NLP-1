@@ -50,20 +50,3 @@ def process_text(text, lemmatizer=WordNetLemmatizer(), stemmer=PorterStemmer()):
     text = [word for word in text if len(word)>1]
     return text
 
-
-def filter_by_POS(
-    doc, #spacy.doc.Doc 
-    tags_to_keep=None,
-    entities_to_remove=[]):
-    if not tags_to_keep:
-        tags_to_keep = ['JJ', 'NN', 'NNP', 'NNPS', 'NNS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ']
-    ''' Receives a Spacy.Document and returns a text skipping the tags not chosen to keep '''
-    filtered_text = ''
-    for sentence in doc.sents:
-        sent_filt_text = ' '.join(
-            [token.lemma_ for token in sentence if (
-                token.tag_ in tags_to_keep 
-                and not token.is_stop
-                and not token.ent_type_ in entities_to_remove)])
-        filtered_text = filtered_text + ' ' + sent_filt_text
-    return filtered_text

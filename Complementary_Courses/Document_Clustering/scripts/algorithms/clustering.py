@@ -405,7 +405,7 @@ if __name__ == '__main__':
     EMBED_SIZE = 10000
     WORDS_PER_CLUSTER = 50
 
-    clustered_words = kmean_clustering(
+    clustered_words = kmeans_clustering(
         model=catalog.models['TFIDF'],
         num_clusters=NUM_CLUSTERS, 
         words_per_cluster=WORDS_PER_CLUSTER)

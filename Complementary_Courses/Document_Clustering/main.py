@@ -53,25 +53,4 @@ tfidf = catalog.to_matrix(
 tfidf.representation.head()
 
 
-'''
-FLAT CLUSTERING
----------------
-'''
-NUM_CLUSTERS = 4
-EMBED_SIZE = 10000
-WORDS_PER_CLUSTER = 50
-
-clustered_words = kmean_clustering(
-    model=catalog.models['TFIDF'],
-    num_clusters=NUM_CLUSTERS, 
-    words_per_cluster=WORDS_PER_CLUSTER)
-
-''' Clustering2WordCloud '''
-plot_clusters_as_wordclouds(tfidf, clustered_words, method='idf')
-
-
-
-
-
-
 
