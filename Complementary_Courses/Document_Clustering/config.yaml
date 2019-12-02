@@ -1,6 +1,7 @@
 paths: 
     results: results/
     catalog: data/catalog
+    checkpoints: checkpoints/
     stopwords: data/stopwords/
     data: data/knowledge_dashboard
 
