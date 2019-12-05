@@ -52,34 +52,22 @@ def computeCoOccurrenceMatrix(corpus, window_size=4):
             word2Ind (dict): dictionary that maps word to index (i.e. row/column number) for matrix M.
     """
     words, num_words = distinctWords(corpus)
-    M = None
-    word2Ind = {w:i for i,w in enumerate(corpus_words)}
 
     ### SOLUTION BEGIN
+    M = np.zeros(shape=(num_words,num_words))
+    word2Ind = {w:i for i,w in enumerate(words)}
+
+    for document in corpus:
+        for i, word in enumerate(document):
+            context = document[max(0,i-window_size):i] + document[i+1:min(i+window_size+1,len(document))]
+            for context_word in context:
+                M[word2Ind[word], word2Ind[context_word]] += 1
+
     ### SOLUTION END
 
+    # Nicer visualization
+    # table = pd.DataFrame(M,index=words,columns=words)
     return M, word2Ind
-
-
-corpus = ["START All that glitters is not gold END".split()]
-corpus_words, num_words = distinctWords(corpus)
-word2Ind = {w:i for i,w in enumerate(corpus_words)}
-M = np.zeros(shape=(num_words,num_words))
-
-# i = 3
-# w = 4
-# sentence = corpus[0]
-# current = sentence[i]
-# context = sentence[max(0,i-w):i] + sentence[i+1:min(i+w+1,len(sentence))]
-# for c in context:
-#     M[i,word2Ind[c]] += 1
-
-for i, word in enumerate(corpus[0]):
-    context = sentence[max(0,i-w):i] + sentence[i+1:min(i+w+1,len(sentence))]
-    for context_word in context:
-        M[i, word2Ind[context_word]] += 1
-
-pd.DataFrame(M,index=corpus_words,columns=corpus_words)
 
 
 
@@ -101,10 +89,13 @@ def reduceToKDim(M, k=2):
     print("Running Truncated SVD over %i words..." % (M.shape[0]))
 
     ### SOLUTION BEGIN
+    reducer = TruncatedSVD(n_components=k, n_iter=n_iters,)
+    M_reduced = reducer.fit_transform(M)
     ### SOLUTION END
 
     print("Done.")
     return M_reduced
+
 
 
 #############################################
