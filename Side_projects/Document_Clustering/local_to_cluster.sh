@@ -15,10 +15,10 @@ cp -r /datadrive/Projects/knowledge_dashboard /home/pablo/NLP/data
 # Run bulk unzip notebook
 
 rsync -auv \
-    -e "ssh -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD" \
+    -e "ssh -i /mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/NLP_Projects" \
     --exclude-from="exclude_sync.txt" \
-    /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/ \
-    pablo@10.99.195.149:/home/pablo/NLP/
+    /mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/NLP_Projects \
+    pablo@10.99.195.149:/home/pablo/Side_NLP_Tests/
 
 
 # Move Corpus
