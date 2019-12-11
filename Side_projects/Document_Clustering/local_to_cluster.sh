@@ -3,9 +3,24 @@
 # ------------------------------
 
 # SSH into your machine
-# ssh -i <path_to_your_key> <open_local_forwarding> user@host
-ssh -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    -L 8899:127.0.0.1:8899 \
+# ssh -i <path_to_your_key> user@host
+
+export SSH_USER=pablo
+export SSH_HOST=10.99.195.149
+
+export KEY_PATH="/mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD"
+export LOCAL_PROJECT_PATH="/mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/NLP_Projects/Side_projects/Document_Clustering"
+export REMOTE_PROJECT_PATH="/home/pablo/Side_NLP_Tests/"
+export EXCLUDE_SYNC_FILE="exclude_sync.txt"
+
+ssh -i ${KEY_PATH} ${SSH_USER}@${SSH_HOST}
+
+# Open LocalForwarding on the Background
+ssh -i $KEY_PATH \
+    -fNL 8889:127.0.0.1:18889 \
+    -fNL 8899:127.0.0.1:18899 \
+    -fNL 8999:127.0.0.1:18999 \
+    -fNL 9999:127.0.0.1:19999 \
     pablo@10.99.195.149
 
 # Copy the data from the datadrive into your folder
@@ -14,12 +29,9 @@ cp -r /datadrive/Projects/knowledge_dashboard /home/pablo/NLP/data
 
 # Run bulk unzip notebook
 
-rsync -auv \
-    -e "ssh -i /mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/NLP_Projects" \
-    --exclude-from="exclude_sync.txt" \
-    /mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/NLP_Projects \
-    pablo@10.99.195.149:/home/pablo/Side_NLP_Tests/
-
+rsync -auv -e "ssh -i ${KEY_PATH}" \
+    --exclude-from=${EXCLUDE_SYNC_FILE} \
+    $LOCAL_PROJECT_PATH pablo@10.99.195.149:$REMOTE_PROJECT_PATH
 
 # Move Corpus
 scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
@@ -54,19 +66,26 @@ scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
 
 docker pull pablorr10/rnd:dev
 
+export CLUSTER_ROOT=/home/pablo/Side_NLP_Tests/Document_Clustering
+export CLUSTER_DATA=/datadrive/madrid
+export CONTAINER_ROOT=/app
+export CONTAINER_DATA=/globaldata
+
 # Open a shell in the container
 docker run --rm -it \
     --name nlpshell \
-    -v ${PWD}:/app \
-    pablorr10/rnd:dev \
-    bash
+    -p 18889:8888 \
+    -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
+    -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
+    pablorr10/nlp:torch bash
 
 # Run detached jupyter notebook
 docker run --rm -d \
-    --name nlpnotebook \
-    -p 8899:8888 \
-    -v ${PWD}:/app \
-    pablorr10/nlp:dev 
+    --name nlptorch \
+    -p 18889:8888 \
+    -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
+    -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
+    pablorr10/nlp:torch
 
 docker logs nlpnotebook
 

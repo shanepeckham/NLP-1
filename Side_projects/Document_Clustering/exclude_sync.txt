@@ -1,0 +1,6 @@
+.git
+.gitignore
+jupyter_notebooks
+media
+*__pycache__
+*.pyc
