@@ -25,6 +25,7 @@ ssh -i $KEY_PATH \
 
 # Copy the data from the datadrive into your folder
 # cp -r /datadrive/Projects/knowledge_dashboard /home/<user>/<project_folder>
+
 cp -r /datadrive/Projects/knowledge_dashboard /home/pablo/NLP/data
 
 # Run bulk unzip notebook
@@ -66,28 +67,27 @@ scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
 
 docker pull pablorr10/rnd:dev
 
+export DOCKER_PORT=8889
+export CLUSTER_PORT=18889
+
+export DOCKER_IMAGE=pablorr10/nlp:minimal
+export CONTAINER_NAME=nlpminimal
+
 export CLUSTER_ROOT=/home/pablo/Side_NLP_Tests/Document_Clustering
-export CLUSTER_DATA=/datadrive/madrid
 export CONTAINER_ROOT=/app
-export CONTAINER_DATA=/globaldata
+
+export CLUSTER_DATA=/datadrive/madrid
+export CONTAINER_DATA=${CONTAINER_ROOT}/globaldata
 
 # Open a shell in the container
-docker run --rm -it \
-    --name nlpshell \
-    -p 18889:8888 \
+docker stop ${CONTAINER_NAME} || true
+docker run --rm -dit \
+    --name ${CONTAINER_NAME} \
+    -p ${CLUSTER_PORT}:${DOCKER_PORT} \
     -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
-    pablorr10/nlp:spark bash
+    ${DOCKER_IMAGE}
 
-# Run detached jupyter notebook
-docker run --rm -d \
-    --name nlptorch \
-    -p 18889:8888 \
-    -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
-    -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
-    pablorr10/nlp:spark
+docker exec -it ${CONTAINER_NAME} bash
 
-docker logs nlpnotebook
-
-# Install NLTK !
-nltk.download('stopwords')
+docker logs ${CONTAINER_NAME}

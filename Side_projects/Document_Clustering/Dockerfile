@@ -2,7 +2,7 @@
 FROM jupyter/minimal-notebook
 USER root
 
-RUN apt-get update \
+RUN sudo -H apt-get update \
     && apt-get install -y \
         git \
         zip \
