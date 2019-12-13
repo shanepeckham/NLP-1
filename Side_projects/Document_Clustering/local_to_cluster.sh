@@ -77,7 +77,7 @@ docker run --rm -it \
     -p 18889:8888 \
     -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
-    pablorr10/nlp:torch bash
+    pablorr10/nlp:spark bash
 
 # Run detached jupyter notebook
 docker run --rm -d \
@@ -85,10 +85,9 @@ docker run --rm -d \
     -p 18889:8888 \
     -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
-    pablorr10/nlp:torch
+    pablorr10/nlp:spark
 
 docker logs nlpnotebook
-
 
 # Install NLTK !
 nltk.download('stopwords')
