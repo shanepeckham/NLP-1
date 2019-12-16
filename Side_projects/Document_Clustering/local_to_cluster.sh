@@ -23,51 +23,14 @@ ssh -i $KEY_PATH \
     -fNL 9999:127.0.0.1:19999 \
     pablo@10.99.195.149
 
-# Copy the data from the datadrive into your folder
-# cp -r /datadrive/Projects/knowledge_dashboard /home/<user>/<project_folder>
 
-cp -r /datadrive/Projects/knowledge_dashboard /home/pablo/NLP/data
-
-# Run bulk unzip notebook
-
-rsync -auv -e "ssh -i ${KEY_PATH}" \
-    --exclude-from=${EXCLUDE_SYNC_FILE} \
-    $LOCAL_PROJECT_PATH pablo@10.99.195.149:$REMOTE_PROJECT_PATH
-
-# Move Corpus
-scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    -rp /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/data/catalog \
-    pablo@10.99.195.149:/home/pablo/NLP/data
-
-# Move Stopwords
-scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/data/stopwords.pkl \
-    pablo@10.99.195.149:/home/pablo/NLP/data
-
-# Move Spacy Language Model
-scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    -rp /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/data/lang_models \
-    pablo@10.99.195.149:/home/pablo/NLP/data
-
-# Move NLTK WordNet Data
-scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    -rp /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/data/nltk_data \
-    pablo@10.99.195.149:/home/pablo/NLP/data
-
-
-# Move from Remote to Host --> (Notebooks develped in remote bring to host to add it to Git)
-scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    -r pablo@10.99.195.149:/home/pablo/NLP/jupyter_notebooks \
-    /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/jupyter_notebooks/
-
-
-
+    
 # Using Docker in Host
 # ---------------------
 
 docker pull pablorr10/rnd:dev
 
-export DOCKER_PORT=8889
+export DOCKER_PORT=8889 # Change to 8889 when new image pushed
 export CLUSTER_PORT=18889
 
 export DOCKER_IMAGE=pablorr10/nlp:minimal
@@ -88,6 +51,19 @@ docker run --rm -dit \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
     ${DOCKER_IMAGE}
 
+docker logs ${CONTAINER_NAME}
+
 docker exec -it ${CONTAINER_NAME} bash
 
-docker logs ${CONTAINER_NAME}
+# Run bulk unzip notebook
+rsync -auv -e "ssh -i ${KEY_PATH}" \
+    --exclude-from=${EXCLUDE_SYNC_FILE} \
+    $LOCAL_PROJECT_PATH pablo@10.99.195.149:$REMOTE_PROJECT_PATH
+
+# Move from Remote to Host --> (Notebooks develped in remote bring to host to add it to Git)
+scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
+    -r pablo@10.99.195.149:/home/pablo/NLP/jupyter_notebooks \
+    /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/jupyter_notebooks/
+
+
+
