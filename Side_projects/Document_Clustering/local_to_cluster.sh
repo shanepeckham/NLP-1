@@ -3,8 +3,6 @@
 # ------------------------------
 
 # SSH into your machine
-# ssh -i <path_to_your_key> user@host
-
 export SSH_USER=pablo
 export SSH_HOST=10.99.195.149
 
@@ -29,14 +27,11 @@ ssh -i $KEY_PATH \
     -fNL 9999:127.0.0.1:19999 \
     pablo@10.99.195.149
 
-
     
 # Using Docker in Host
 # ---------------------
 
-docker pull pablorr10/rnd:dev
-
-export DOCKER_PORT=8889 # Change to 8889 when new image pushed
+export DOCKER_PORT=8889
 export CLUSTER_PORT=18889
 
 export P21=8899
@@ -45,7 +40,6 @@ export P31=8999
 export P32=18999
 export P41=9999
 export P42=19999
-
 
 export DOCKER_IMAGE=pablorr10/nlp:minimal
 export CONTAINER_NAME=nlpminimal
@@ -66,7 +60,7 @@ docker run --rm -dit \
     -p ${P41}:${P42} \
     -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
-    ${DOCKER_IMAGE}
+    ${DOCKER_IMAGE} jupyter contrib nbextension install --user # Rebuild image
 
 docker logs ${CONTAINER_NAME}
 
