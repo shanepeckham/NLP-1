@@ -60,15 +60,18 @@ docker run --rm -dit \
     -p ${P41}:${P42} \
     -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
-    ${DOCKER_IMAGE} jupyter contrib nbextension install --user # Rebuild image
+    ${DOCKER_IMAGE} 
+    
+    
+    jupyter contrib nbextension install --user # Rebuild image
 
 docker logs ${CONTAINER_NAME}
 
 docker exec -it ${CONTAINER_NAME} bash
 
 # Move from Remote to Host --> (Notebooks develped in remote bring to host to add it to Git)
-export REMOTE_DIR="/home/pablo/NLP/jupyter_notebooks"
-export LOCAL_DIR="/mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/jupyter_notebooks/"
+export REMOTE_DIR="/home/pablo/Side_NLP_Tests/Document_Clustering/Cluster_notebooks"
+export LOCAL_DIR="/mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/StanfordNLP/Side_projects/Document_Clustering"
 
 scp -i ${KEY_PATH} \
     -r ${SSH_USER}@${SSH_HOST}:${REMOTE_DIR} ${LOCAL_DIR}
