@@ -31,4 +31,5 @@ EXPOSE 9999
 
 RUN cat /etc/*-release
 
+RUN jupyter contrib nbextension install --user
 CMD jupyter notebook --ip='0.0.0.0' --port=${SERVING_PORT} --no-browser --allow-root --notebook-dir=${PROJECT_ROOT}

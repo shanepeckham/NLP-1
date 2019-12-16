@@ -175,6 +175,7 @@ class Catalog:
         model.name = modelname,
         model.mapping = vectorizer
         representation = model.mapping.fit_transform(self.corpus[:max_docs])
+        model.dtm_sparse = representation # To keep the sparse representation - Used in PyLDAVis 
         model.representation = pd.DataFrame(
             data=representation.toarray()[:max_docs],
             columns=model.mapping.get_feature_names())

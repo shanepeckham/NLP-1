@@ -9,10 +9,16 @@ export SSH_USER=pablo
 export SSH_HOST=10.99.195.149
 
 export KEY_PATH="/mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD"
-export LOCAL_PROJECT_PATH="/mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/NLP_Projects/Side_projects/Document_Clustering"
+export LOCAL_PROJECT_PATH="/mnt/c/Users/RUIZP4/Documents/DOCS/Pablo_Personal/StanfordNLP/Side_projects/Document_Clustering"
 export REMOTE_PROJECT_PATH="/home/pablo/Side_NLP_Tests/"
 export EXCLUDE_SYNC_FILE="exclude_sync.txt"
 
+# Push to remote
+rsync -auv -e "ssh -i ${KEY_PATH}" \
+    --exclude-from=${EXCLUDE_SYNC_FILE} \
+    $LOCAL_PROJECT_PATH ${SSH_USER}@${SSH_HOST}:$REMOTE_PROJECT_PATH
+
+# SSH Connect
 ssh -i ${KEY_PATH} ${SSH_USER}@${SSH_HOST}
 
 # Open LocalForwarding on the Background
@@ -33,6 +39,14 @@ docker pull pablorr10/rnd:dev
 export DOCKER_PORT=8889 # Change to 8889 when new image pushed
 export CLUSTER_PORT=18889
 
+export P21=8899
+export P22=18899
+export P31=8999
+export P32=18999
+export P41=9999
+export P42=19999
+
+
 export DOCKER_IMAGE=pablorr10/nlp:minimal
 export CONTAINER_NAME=nlpminimal
 
@@ -47,6 +61,9 @@ docker stop ${CONTAINER_NAME} || true
 docker run --rm -dit \
     --name ${CONTAINER_NAME} \
     -p ${CLUSTER_PORT}:${DOCKER_PORT} \
+    -p ${P21}:${P22} \
+    -p ${P31}:${P32} \
+    -p ${P41}:${P42} \
     -v ${CLUSTER_ROOT}:${CONTAINER_ROOT} \
     -v ${CLUSTER_DATA}:${CONTAINER_DATA} \
     ${DOCKER_IMAGE}
@@ -55,15 +72,12 @@ docker logs ${CONTAINER_NAME}
 
 docker exec -it ${CONTAINER_NAME} bash
 
-# Run bulk unzip notebook
-rsync -auv -e "ssh -i ${KEY_PATH}" \
-    --exclude-from=${EXCLUDE_SYNC_FILE} \
-    $LOCAL_PROJECT_PATH pablo@10.99.195.149:$REMOTE_PROJECT_PATH
-
 # Move from Remote to Host --> (Notebooks develped in remote bring to host to add it to Git)
-scp -i /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/id_rsa_BASF_RnD \
-    -r pablo@10.99.195.149:/home/pablo/NLP/jupyter_notebooks \
-    /mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/jupyter_notebooks/
+export REMOTE_DIR="/home/pablo/NLP/jupyter_notebooks"
+export LOCAL_DIR="/mnt/c/Users/RUIZP4/Documents/DOCS/RnD/NLP/jupyter_notebooks/"
+
+scp -i ${KEY_PATH} \
+    -r ${SSH_USER}@${SSH_HOST}:${REMOTE_DIR} ${LOCAL_DIR}
 
 
 
