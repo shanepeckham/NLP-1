@@ -169,7 +169,7 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
         
         o = word2Ind[word]
         u_o = outsideVectors[o,:]
-        J, dV, dU = naiveSoftmaxLossAndGradient(v_c, o, outsideVectors, dataset)
+        J, dV, dU = word2vecLossAndGradient(v_c, o, outsideVectors, dataset)
         
         loss += J
         gradCenterVecs[c] += dV
@@ -178,9 +178,9 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     return loss, gradCenterVecs, gradOutsideVectors
 
 
-def word2vec_sgd_wrapper(word2vecModel, word2Ind, wordVectors, dataset,
-                         windowSize,
-                         word2vecLossAndGradient=negSamplingLossAndGradient):
+def word2vec_sgd_wrapper(
+    word2vecModel, word2Ind, wordVectors, dataset, windowSize,
+    word2vecLossAndGradient=negSamplingLossAndGradient):
     batchsize = 50
     loss = 0.0
     grad = np.zeros(wordVectors.shape)

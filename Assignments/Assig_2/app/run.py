@@ -42,6 +42,7 @@ wordVectors = np.concatenate(
      dimVectors, np.zeros((nWords, dimVectors))),
     axis=0)
 
+print('Starting SGD algorithm')
 wordVectors = sgd(
     lambda vec: word2vec_sgd_wrapper(
         skipgram, tokens, vec, dataset, C, negSamplingLossAndGradient),
