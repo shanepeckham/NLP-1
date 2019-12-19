@@ -20,12 +20,7 @@ def sigmoid(x):
     return s
 
 
-def naiveSoftmaxLossAndGradient(
-        centerWordVec,
-        outsideWordIdx,
-        outsideVectors,
-        dataset
-):
+def naiveSoftmaxLossAndGradient(centerWordVec, outsideWordIdx, outsideVectors, dataset):
     """ Naive Softmax loss & gradient function for word2vec models
 
     Implement the naive softmax loss and gradients between a center word's 
@@ -54,18 +49,32 @@ def naiveSoftmaxLossAndGradient(
     """
 
     vocab_size = outsideVectors.shape[0] # Each row is a word -> Vocabulary size = total rows
-    outsideWordVec = outsideVectors[outsideWordIdx,:]
+    outsideWordVec =  outsideVectors[outsideWordIdx,:]
 
-    # Softmax
-    y_hat = np.dot(outsideWordVec, centerWordVec) / np.sum([np.exp(np.dot(outsideVectors[w,:], centerWordVec)) for w in range(len(vocab_size))])
+    # Familiar notation
+    v_c = centerWordVec
+    u_o = outsideWordVec
+    U = outsideVectors.T
+
+    def softmax(s):
+        norm_ = np.sum([np.exp(s_i) for s_i in s])
+        return np.array([np.exp(s_i) / norm_ for s_i in s])
+
+    # Softmax forward pass
+    scores = np.matmul(U.T, v_c)
+    y_hat = softmax(scores)
     y_true = np.zeros_like(y_hat)
     y_true[outsideWordIdx] = 1
+    error = (y_hat - y_true)
+    
+    # Comput J
+    loss = - np.dot(u_o.T, v_c) + np.log( np.sum( [np.exp(np.dot(outsideVectors[w,:].T, v_c)) for w in range(vocab_size)] ) )
 
-    loss = np.dot(outsideWordVec, centerWordVec) + np.log(np.sum([np.exp(np.dot(outsideVectors[w,:], centerWordVec)) for w in range(len(vocab_size))]))
+    # Compute dJ/dvc
+    gradCenterVec = np.matmul(U, error)
 
-    gradCenterVec = np.matmul(outsideVectors, (y_hat - y_true))
-
-    gradOutsideVecs = np.dot(centerWordVec, (y_hat - y_true))
+    # Compute dJ/dU
+    gradOutsideVecs = np.outer(v_c, error).T  # Transpose needed because the outer product is returning a (NxV) instead of (VxN) 
 
     return loss, gradCenterVec, gradOutsideVecs
 
@@ -153,12 +162,17 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     gradCenterVecs = np.zeros(centerWordVectors.shape)
     gradOutsideVectors = np.zeros(outsideVectors.shape)
 
-    v_c = centerWordVectors[word2Ind[currentCenterWord],:]
+    c = word2Ind[currentCenterWord]
+    v_c = centerWordVectors[c,:]
 
     for word in outsideWords:
-        u_o = outsideVectors[word2Ind[word],:]
-        J, dV, dU = naiveSoftmaxLossAndGradient(v_c, word2Ind[word], outsideVectors)
-        gradCenterVecs += dV
+        
+        o = word2Ind[word]
+        u_o = outsideVectors[o,:]
+        J, dV, dU = naiveSoftmaxLossAndGradient(v_c, o, outsideVectors, dataset)
+        
+        loss += J
+        gradCenterVecs[c] += dV
         gradOutsideVectors += dU
 
     return loss, gradCenterVecs, gradOutsideVectors
