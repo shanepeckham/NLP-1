@@ -16,10 +16,7 @@ def sigmoid(x):
     Return:
     s -- sigmoid(x)
     """
-
-    ### YOUR CODE HERE
-    ### END YOUR CODE
-
+    s = 1/(1+np.exp(-x))
     return s
 
 
@@ -56,8 +53,19 @@ def naiveSoftmaxLossAndGradient(
      but for ease of implementation/programming we usually use row vectors (representing vectors in row form).
     """
 
-    ### YOUR CODE HERE
-    ### END YOUR CODE
+    vocab_size = outsideVectors.shape[0] # Each row is a word -> Vocabulary size = total rows
+    outsideWordVec = outsideVectors[outsideWordIdx,:]
+
+    # Softmax
+    y_hat = np.dot(outsideWordVec, centerWordVec) / np.sum([np.exp(np.dot(outsideVectors[w,:], centerWordVec)) for w in range(len(vocab_size))])
+    y_true = np.zeros_like(y_hat)
+    y_true[outsideWordIdx] = 1
+
+    loss = np.dot(outsideWordVec, centerWordVec) + np.log(np.sum([np.exp(np.dot(outsideVectors[w,:], centerWordVec)) for w in range(len(vocab_size))]))
+
+    gradCenterVec = np.matmul(outsideVectors, (y_hat - y_true))
+
+    gradOutsideVecs = np.dot(centerWordVec, (y_hat - y_true))
 
     return loss, gradCenterVec, gradOutsideVecs
 
@@ -145,8 +153,13 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     gradCenterVecs = np.zeros(centerWordVectors.shape)
     gradOutsideVectors = np.zeros(outsideVectors.shape)
 
-    ### YOUR CODE HERE
-    ### END YOUR CODE
+    v_c = centerWordVectors[word2Ind[currentCenterWord],:]
+
+    for word in outsideWords:
+        u_o = outsideVectors[word2Ind[word],:]
+        J, dV, dU = naiveSoftmaxLossAndGradient(v_c, word2Ind[word], outsideVectors)
+        gradCenterVecs += dV
+        gradOutsideVectors += dU
 
     return loss, gradCenterVecs, gradOutsideVectors
 
